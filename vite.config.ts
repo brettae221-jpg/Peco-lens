@@ -8,20 +8,23 @@ export default defineConfig({
   // ... rest of your config
 });
 
-export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    return {
-      server: {
-        port: 3000,
-        host: '0.0.0.0',
-      },
-      plugins: [
-        react(),
-        tailwindcss(),
-        VitePWA({
-          registerType: 'autoUpdate',
-          workbox: {
-            maximumFileSizeToCacheInBytes: 4000000,
+export default defineConfig({
+  base: '/Peco-lens/',
+  plugins: [
+    react(),
+    VitePWA({
+      registerType: 'autoUpdate',
+      workbox: {
+        // This prevents the "Unexpected early exit" crash in Termux
+        minify: false 
+      }
+    })
+  ],
+  build: {
+    // Also disable general minification if the crash persists
+    minify: false 
+  }
+});
           },
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
           manifest: {
