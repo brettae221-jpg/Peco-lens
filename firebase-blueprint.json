@@ -1,0 +1,108 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "System user profiles and permissions",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["Admin", "Operator"] },
+        "name": { "type": "string" },
+        "dept": { "type": "string" },
+        "appPosition": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    },
+    "PMItem": {
+      "title": "PM Item",
+      "description": "Log of faulty parts for Preventive Maintenance",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "string", "format": "date-time" },
+        "equipmentType": { "type": "string", "enum": ["Megajet", "Grasselli", "Vision", "Thermal", "General"] },
+        "partName": { "type": "string" },
+        "issueDescription": { "type": "string" },
+        "severity": { "type": "string", "enum": ["Low", "Medium", "High"] },
+        "loggedBy": { "type": "string" },
+        "status": { "type": "string", "enum": ["Pending", "Fixed"] },
+        "aiReasoning": { "type": "string" },
+        "modelUrl": { "type": "string" }
+      },
+      "required": ["timestamp", "equipmentType", "partName", "issueDescription", "loggedBy", "status"]
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "Real-time communication message",
+      "type": "object",
+      "properties": {
+        "senderEmail": { "type": "string" },
+        "senderName": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderEmail", "text", "timestamp"]
+    },
+    "Machine": {
+      "title": "Machine",
+      "description": "Industrial machine state and telemetry",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["Operational", "Maintenance", "Fault"] },
+        "health": { "type": "number" },
+        "runtime": { "type": "number" },
+        "sync": { "type": "string" }
+      },
+      "required": ["name", "status"]
+    },
+    "AICache": {
+      "title": "AI Cache",
+      "description": "Cached AI responses for offline fallback",
+      "type": "object",
+      "properties": {
+        "promptHash": { "type": "string" },
+        "response": { "type": "object" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["promptHash", "response"]
+    }
+  },
+  "firestore": {
+    "/pm_items": {
+      "schema": "PMItem",
+      "description": "A list of all detected mechanical faults for the PM shift"
+    },
+    "/users": {
+        "schema": "User",
+        "description": "User profile data"
+    },
+    "/messages": {
+      "schema": "ChatMessage",
+      "description": "Main chat messages"
+    },
+    "/alerts": {
+      "schema": "ChatMessage",
+      "description": "System alerts"
+    },
+    "/broadcasts": {
+      "schema": "ChatMessage",
+      "description": "Admin broadcasts"
+    },
+    "/machines": {
+      "schema": "Machine",
+      "description": "Live machine status"
+    },
+    "/ai_cache": {
+      "schema": "AICache",
+      "description": "Cached AI responses"
+    },
+    "/system/config": {
+      "schema": "object",
+      "description": "Global system configuration"
+    },
+    "/system_modules": {
+      "schema": "object",
+      "description": "App navigation module configuration"
+    }
+  }
+}
