@@ -15,16 +15,17 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        // This prevents the "Unexpected early exit" crash in Termux
+        // This is the critical fix for Termux/Android crashes
         minify: false 
       }
     })
   ],
   build: {
-    // Also disable general minification if the crash persists
+    // This stops the main build from crashing your phone's CPU
     minify: false 
   }
 });
+
           },
           includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
           manifest: {
