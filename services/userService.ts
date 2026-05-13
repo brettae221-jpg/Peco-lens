@@ -12,6 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { User, AppMode } from '../types';
+import { users as staticUsers } from '../users';
 
 const USERS_COLLECTION = 'users';
 
@@ -20,8 +21,8 @@ export async function getUsers(): Promise<User[]> {
     const querySnapshot = await getDocs(collection(db, USERS_COLLECTION));
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
   } catch (error) {
-    handleFirestoreError(error, OperationType.LIST, USERS_COLLECTION);
-    return [];
+    console.warn("Firestore fetch error, using static fallback:", error);
+    return staticUsers;
   }
 }
 
@@ -70,18 +71,24 @@ export async function authenticateUser(email: string, password: string): Promise
     const q = query(collection(db, USERS_COLLECTION), where("email", "==", email.toLowerCase()));
     const querySnapshot = await getDocs(q);
     
-    if (querySnapshot.empty) return null;
-    
-    const userDoc = querySnapshot.docs[0];
-    const userData = userDoc.data() as User;
-    
-    if (userData.password === password) {
-      return { id: userDoc.id, ...userData };
+    if (!querySnapshot.empty) {
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data() as User;
+      
+      if (userData.password === password) {
+        return { id: userDoc.id, ...userData };
+      }
     }
-    
-    return null;
   } catch (error) {
-    handleFirestoreError(error, OperationType.GET, USERS_COLLECTION);
-    return null;
+    console.warn("Firestore auth error, checking static fallback:", error);
   }
+
+  // Fallback to local users.ts for offline/unconfigured environments
+  const foundUser = staticUsers.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
+  if (foundUser) {
+    const { password: _, ...userToReturn } = foundUser;
+    return { ...userToReturn, id: `static-${foundUser.email}` } as User;
+  }
+  
+  return null;
 }
