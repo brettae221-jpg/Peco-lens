@@ -27,6 +27,24 @@ export interface ChatMessage {
   text: string;
   timestamp: any;
   image?: string;
+  read?: boolean;
+}
+
+export interface NewsPost {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  type: 'training_complete' | 'test_complete' | 'ai_chat_shared' | 'pm_logged' | 'new_login' | 'status_update' | 'feature_update';
+  textContent: string;
+  metadata?: {
+    courseTitle?: string;
+    testScore?: number;
+    equipmentId?: string;
+    featureName?: string;
+  };
+  timestamp: any;
+  likes: string[]; // user emails
 }
 
 export interface DirectMessage {
@@ -118,7 +136,7 @@ export interface RecoveryData {
 export interface TrainingCourse {
     id?: string;
     title: string;
-    level: 'Beginner' | 'Advanced';
+    level: 'Beginner' | 'Moderate' | 'Advanced' | 'Expert';
     description?: string;
     modules: {
         moduleTitle: string;
@@ -127,6 +145,34 @@ export interface TrainingCourse {
             content: string;
         }[];
     }[];
+    generatedBy?: 'AI';
+    createdAt?: any;
+}
+
+export interface TrainingTest {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  level: 'Beginner' | 'Moderate' | 'Advanced' | 'Expert';
+  questions: {
+    question: string;
+    options: string[];
+    correctIndex: number;
+    explanation?: string;
+  }[];
+}
+
+export interface TestResult {
+  id: string;
+  userId: string;
+  userEmail: string;
+  testId: string;
+  testTitle: string;
+  score: number;
+  totalQuestions: number;
+  percentage: number;
+  timestamp: any;
+  difficulty: string;
 }
 
 export interface TroubleshootingScenario {
@@ -157,6 +203,34 @@ export interface PMEntry {
   userEmail: string;
   status: 'Open' | 'Fixed';
   assignedTo: string;
+}
+
+export interface GalleryAsset {
+  id: string;
+  userId: string;
+  title: string;
+  type: 'diagram' | 'model' | 'photo' | 'scan';
+  url: string; // base64 or placeholder
+  timestamp: any;
+  category: string;
+}
+
+export interface AuditLog {
+  id: string;
+  userId: string;
+  userEmail: string;
+  action: string;
+  details: string;
+  timestamp: any;
+  severity: 'info' | 'warning' | 'critical';
+}
+
+export interface SystemConfig {
+  id: string;
+  facilityName: string;
+  alertBanner?: string;
+  operationalMode: 'Full' | 'Maintenance' | 'Emergency' | 'Holiday';
+  activeUpdateId?: string;
 }
 
 export type AppView =
@@ -220,6 +294,20 @@ export interface BeltSpeedCheck {
   product: string;
   speed: string;
   type: 'Routine' | 'Changeover';
+}
+
+export interface MachineTelemetry {
+  id: string; // Machine Name
+  lastConnected: any;
+  wagoInterfaceImage?: string;
+  status: 'Online' | 'Offline';
+  data: {
+    servoLoad?: string;
+    waterPressure?: string;
+    actuatorFreq?: string;
+    beltSpeed?: string;
+    thickness?: string;
+  };
 }
 
 export interface ShiftReport {

@@ -17,22 +17,48 @@ export default defineConfig(({ mode }) => {
         tailwindcss(),
         VitePWA({
           registerType: 'autoUpdate',
+          strategies: 'generateSW',
           workbox: {
-            maximumFileSizeToCacheInBytes: 4000000,
+            maximumFileSizeToCacheInBytes: 5000000,
+            globPatterns: ['**/*.{js,css,html,ico,png,svg,json,woff2}'],
+            runtimeCaching: [
+              {
+                urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+                handler: 'CacheFirst',
+                options: {
+                  cacheName: 'google-fonts-cache',
+                  expiration: {
+                    maxEntries: 10,
+                    maxAgeSeconds: 60 * 60 * 24 * 365
+                  },
+                  cacheableResponse: {
+                    statuses: [0, 200]
+                  }
+                }
+              }
+            ]
           },
-          includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+          includeAssets: ['icon.svg', 'apple-touch-icon.png'],
           manifest: {
             name: 'Peco-lens Command Center',
             short_name: 'Peco-lens',
             description: 'Advanced troubleshooting for MegaJet & Grasselli',
-            theme_color: '#000000',
-            background_color: '#000000',
+            theme_color: '#e11d48',
+            background_color: '#020617',
+            display: 'standalone',
+            start_url: '.',
             icons: [
               {
                 src: 'icon.svg',
                 sizes: 'any',
                 type: 'image/svg+xml',
-                purpose: 'any maskable'
+                purpose: 'any'
+              },
+              {
+                src: 'icon.svg',
+                sizes: '512x512',
+                type: 'image/svg+xml',
+                purpose: 'maskable'
               }
             ]
           }

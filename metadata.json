@@ -2,7 +2,8 @@
   "name": "Peco-lens",
   "description": "An advanced command center for live troubleshooting, recovery, and training for PecoFoods Megajet & Grassilli systems. Log issues, get step-by-step recovery guidance, and train operators with an AI assistant.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone"
   ],
   "C7": [],
   "aq": []

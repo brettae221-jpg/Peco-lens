@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
+import { 
+  ArrowLeft,
+  MessageSquare,
+  RefreshCcw,
+  Bell
+} from 'lucide-react';
 import Lenses from './components/Lenses';
 import Messenger from './components/Messenger';
 import AdminMenu from './components/AdminMenu';
@@ -17,11 +23,10 @@ import Settings from './components/Settings';
 import Builder from './components/Builder';
 import AIChat from './components/AIChat';
 import DensityCalculator from './components/DensityCalculator';
-import { AppMode, User, TroubleshootingScenario, TrainingCourse, LogEntry, Blueprint } from './types';
+import { AppMode, User, TroubleshootingScenario, TrainingCourse, LogEntry, Blueprint, NewsPost } from './types';
 import { initialTrainingCourses } from './trainingCourses';
 import { initialDiagrams } from './initialDiagrams';
 import { usePWAUpdate } from './services/pwaService';
-import { RefreshCcw } from 'lucide-react';
 
 import { auth, db } from './firebase';
 import { collection, getDocs, doc, setDoc } from 'firebase/firestore';
@@ -81,11 +86,13 @@ const App: React.FC = () => {
   });
 
   const [activeMode, setActiveMode] = useState<AppMode>(AppMode.Dashboard);
+  const [hasNewMessages, setHasNewMessages] = useState(false);
   
   const [trainingCourses, setTrainingCourses] = useState<TrainingCourse[]>(initialTrainingCourses);
   const [troubleshootingScenarios, setTroubleshootingScenarios] = useState<TroubleshootingScenario[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [blueprints, setBlueprints] = useState<Blueprint[]>(initialDiagrams);
+  const [newsfeed, setNewsfeed] = useState<NewsPost[]>([]);
 
   useEffect(() => {
     // Load persisted data
@@ -98,6 +105,23 @@ const App: React.FC = () => {
   }, [logs]);
 
   const handleLogin = (loggedInUser: Omit<User, 'password'>) => {
+    const isFirstTime = !loggedInUser.firstLogin;
+    
+    // Create new login newsfeed entry
+    if (isFirstTime) {
+      const post: NewsPost = {
+        id: `post-${Date.now()}`,
+        userId: loggedInUser.id || 'unknown',
+        userEmail: loggedInUser.email,
+        userName: loggedInUser.name || loggedInUser.username || 'New User',
+        type: 'new_login',
+        textContent: 'has established a neural connection for the first time.',
+        timestamp: new Date(),
+        likes: []
+      };
+      setNewsfeed(prev => [post, ...prev]);
+    }
+
     // Force AI Chat into accessible modes for Admins if missing
     if (loggedInUser.role === 'Admin' && loggedInUser.accessibleModes && !loggedInUser.accessibleModes.includes(AppMode.AIChat)) {
         loggedInUser = {
@@ -123,25 +147,25 @@ const App: React.FC = () => {
       case AppMode.Tools:
         return <Tools />;
       case AppMode.Maintenance:
-        return <Maintenance />;
+        return <Maintenance user={user as User} />;
       case AppMode.Training:
-        return <TrainingMode />;
+        return <TrainingMode user={user as User} />;
       case AppMode.Gallery:
-        return <Gallery />;
+        return <Gallery user={user as User} />;
       case AppMode.Calendar:
         return <Calendar />;
       case AppMode.Messages:
         return <Messenger user={user as User} />;
       case AppMode.Machines:
-        return <Machines />;
+        return user?.role === 'Admin' ? <Machines /> : <Dashboard user={user as User} onNavigate={setActiveMode} />;
       case AppMode.Settings:
         return <Settings user={user as User} />;
       case AppMode.AIChat:
-        return <AIChat />;
+        return <AIChat user={user as User} />;
       case AppMode.DensityCalculator:
         return <DensityCalculator />;
       case AppMode.Admin:
-        return user?.role === 'Admin' ? <AdminMenu /> : <Dashboard user={user as User} onNavigate={setActiveMode} />;
+        return user?.role === 'Admin' ? <AdminMenu user={user as User} /> : <Dashboard user={user as User} onNavigate={setActiveMode} />;
       case AppMode.Builder:
         return user?.role === 'Admin' ? <Builder /> : <Dashboard user={user as User} onNavigate={setActiveMode} />;
       default:
@@ -203,25 +227,32 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-950 overflow-hidden font-sans antialiased text-slate-200">
-      <Header user={user} contextLabel={getContextLabel()} />
       
+      {/* Messenger Indicator (Shaded out line with blue light indicator) */}
+      <div className="fixed top-6 right-6 z-[60] pointer-events-none">
+        <div className="flex items-center space-x-2">
+          <div className="h-[1px] w-12 bg-white/10" />
+          <div className={`h-2 w-2 rounded-full ring-4 ring-white/5 transition-all duration-700 ${hasNewMessages ? 'bg-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.8)]' : 'bg-white/5'}`} />
+        </div>
+      </div>
+
       <AnimatePresence>
         {updateAvailable && (
           <motion.div 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-brand-red text-white flex items-center justify-between px-6 py-3 shrink-0"
+            className="bg-brand-red text-white flex items-center justify-between px-6 py-3 shrink-0 z-40"
           >
             <div className="flex items-center space-x-3">
               <RefreshCcw className="h-4 w-4 animate-spin-slow" />
-              <span className="text-[10px] font-black uppercase tracking-widest">New Engine Update Available</span>
+              <span className="text-[10px] font-black uppercase tracking-widest">Peco Engine Update</span>
             </div>
             <button 
               onClick={applyUpdate}
               className="bg-white/20 hover:bg-white/30 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors"
             >
-              Install & Restart
+              Sync
             </button>
           </motion.div>
         )}
@@ -229,8 +260,24 @@ const App: React.FC = () => {
 
       <main className="flex-1 overflow-hidden relative">
         <Content />
+        
+        {/* Global Back Button - Only visible when not on Dashboard */}
+        {activeMode !== AppMode.Dashboard && (
+          <motion.button
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => setActiveMode(AppMode.Dashboard)}
+            className="absolute bottom-8 left-8 z-50 h-16 w-16 bg-white/10 backdrop-blur-3xl border border-white/10 rounded-full flex items-center justify-center text-white shadow-2xl active:scale-95 transition-transform"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </motion.button>
+        )}
       </main>
-      <BottomNav activeMode={activeMode} onNavigate={setActiveMode} user={user} />
+
+      {/* Navigation only visible on home/dashboard (Main Menu) */}
+      {activeMode === AppMode.Dashboard && (
+        <BottomNav activeMode={activeMode} onNavigate={setActiveMode} user={user} />
+      )}
     </div>
   );
 };
