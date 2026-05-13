@@ -16,6 +16,7 @@ import Machines from './components/Machines';
 import Settings from './components/Settings';
 import Builder from './components/Builder';
 import AIChat from './components/AIChat';
+import DensityCalculator from './components/DensityCalculator';
 import { AppMode, User, TroubleshootingScenario, TrainingCourse, LogEntry, Blueprint } from './types';
 import { initialTrainingCourses } from './trainingCourses';
 import { initialDiagrams } from './initialDiagrams';
@@ -137,6 +138,8 @@ const App: React.FC = () => {
         return <Settings user={user as User} />;
       case AppMode.AIChat:
         return <AIChat />;
+      case AppMode.DensityCalculator:
+        return <DensityCalculator />;
       case AppMode.Admin:
         return user?.role === 'Admin' ? <AdminMenu /> : <Dashboard user={user as User} onNavigate={setActiveMode} />;
       case AppMode.Builder:
@@ -193,6 +196,7 @@ const App: React.FC = () => {
       case AppMode.Admin: return 'Admin Override';
       case AppMode.Builder: return 'AI Architecture';
       case AppMode.AIChat: return 'Neural AI Diagnostic';
+      case AppMode.DensityCalculator: return 'HMI Matrix Calculator';
       default: return 'PecoFoods';
     }
   };
