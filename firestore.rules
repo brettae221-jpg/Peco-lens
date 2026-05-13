@@ -50,7 +50,7 @@ service cloud.firestore {
       }
 
       allow read: if isSignedIn();
-      allow list: if isAdmin();
+      allow list: if isSignedIn();
       allow create: if isSignedIn(); // Allow provisioning initial users or admin adding
       allow update: if isSignedIn() && (
         isAdmin() || 
