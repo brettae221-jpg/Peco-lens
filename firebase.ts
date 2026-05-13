@@ -25,9 +25,23 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app, import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID);
-export const auth = getAuth(app);
+let app;
+let db: any;
+let auth: any;
+
+try {
+  if (firebaseConfig.apiKey) {
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app, import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID);
+    auth = getAuth(app);
+  } else {
+    console.error("CRITICAL: Firebase configuration missing. Ensure .env or environment variables are set.");
+  }
+} catch (e) {
+  console.error("Firebase initialization failed:", e);
+}
+
+export { db, auth };
 export { collection, query, onSnapshot, setDoc, addDoc, orderBy, limit, Timestamp, serverTimestamp };
 
 // Enable Persistence
