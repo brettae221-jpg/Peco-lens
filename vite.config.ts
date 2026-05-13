@@ -1,11 +1,17 @@
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
+    const geminiKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
+    
     return {
       base: './', // Ensures assets load correctly on GitHub Pages and other sub-directory hosts
       server: {
@@ -38,7 +44,7 @@ export default defineConfig(({ mode }) => {
               }
             ]
           },
-          includeAssets: ['image_6afa23fe.png'],
+          includeAssets: ['image_6afa23fe.png', 'icon.svg'],
           manifest: {
             name: 'Peco-lens Command Center',
             short_name: 'Peco-lens',
@@ -59,15 +65,20 @@ export default defineConfig(({ mode }) => {
                 sizes: '512x512',
                 type: 'image/png',
                 purpose: 'maskable'
+              },
+              {
+                src: 'icon.svg',
+                sizes: 'any',
+                type: 'image/svg+xml',
+                purpose: 'any'
               }
             ]
           }
         })
       ],
       define: {
-        'process.env.API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.GEMINI_API_KEY),
-        'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.GEMINI_API_KEY)
+        'process.env.GEMINI_API_KEY': JSON.stringify(geminiKey),
+        'import.meta.env.VITE_GEMINI_API_KEY': JSON.stringify(geminiKey)
       },
       resolve: {
         alias: {
