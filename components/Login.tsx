@@ -33,7 +33,18 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       }
       
       if (!auth.currentUser) {
-        await signInAnonymously(auth);
+        try {
+          await signInAnonymously(auth);
+        } catch (authErr: any) {
+          console.error("Auth pre-check failed:", authErr);
+          if (authErr.code === 'auth/admin-restricted-operation') {
+            throw new Error('AUTH_DISABLED: Anonymous Sign-in is not enabled in your Firebase Console. Please go to Authentication -> Sign-in method and enable Anonymous Auth.');
+          }
+          if (authErr.code === 'auth/unauthorized-domain') {
+            throw new Error('DOMAIN_RESTRICTED: This domain (github.io) is not authorized in your Firebase Console. Add it under Authentication -> Settings -> Authorized Domains.');
+          }
+          // Continue anyway, it might work if rules are loose or already signed in
+        }
       }
 
       const user = await authenticateUser(email, password);
