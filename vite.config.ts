@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
               }
             ]
           },
-          includeAssets: ['icon.svg', 'apple-touch-icon.png'],
+          includeAssets: ['image_6afa23fe.png'],
           manifest: {
             name: 'Peco-lens Command Center',
             short_name: 'Peco-lens',
@@ -49,15 +49,15 @@ export default defineConfig(({ mode }) => {
             start_url: '.',
             icons: [
               {
-                src: 'icon.svg',
-                sizes: 'any',
-                type: 'image/svg+xml',
+                src: 'image_6afa23fe.png',
+                sizes: '192x192',
+                type: 'image/png',
                 purpose: 'any'
               },
               {
-                src: 'icon.svg',
+                src: 'image_6afa23fe.png',
                 sizes: '512x512',
-                type: 'image/svg+xml',
+                type: 'image/png',
                 purpose: 'maskable'
               }
             ]
