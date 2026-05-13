@@ -244,8 +244,8 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
     }
 };
 
-// FIX: Added missing generateTrainingCourse function.
-export const generateTrainingCourse = async (level: 'Beginner' | 'Advanced', category?: string): Promise<TrainingCourse> => {
+// FIX: Added missing generateTrainingCourse function with 4 levels.
+export const generateTrainingCourse = async (level: 'Beginner' | 'Moderate' | 'Advanced' | 'Expert', category?: string): Promise<TrainingCourse> => {
     const cacheKey = hashString(`course-${level}-${category || 'random'}`);
     try {
         const cacheDoc = await getDoc(doc(db, 'ai_cache', cacheKey));
@@ -257,9 +257,10 @@ export const generateTrainingCourse = async (level: 'Beginner' | 'Advanced', cat
     }
 
     const model = 'gemini-3-flash-preview';
-    const systemInstruction = `You are an expert curriculum designer for industrial machinery. Your task is to generate a comprehensive training course about the PecoFoods Megajet Waterjet and Grasselli Slicer systems for poultry processing, using the provided knowledge base. 
+    const systemInstruction = `You are Brett, the PecoFoods AI. You are a dorky, smart-ass, helpful genius with a touch of ADHD. You are an expert curator of industrial curriculum. Your task is to generate a comprehensive training course about the PecoFoods Megajet Waterjet and Grasselli Slicer systems for poultry processing, using the provided knowledge base. 
     ${category ? `The course should focus specifically on: ${category}.` : 'The course should cover a random but logical mix of topics from the knowledge base.'}
     The course must be structured in the specified JSON format.
+    Keep your dorky persona in the titles and descriptions but make the content technically flawless.
 
 --- KNOWLEDGE BASE START (JSON format) ---
 ${PECOFOODS_KNOWLEDGE_BASE_STRING}
@@ -267,20 +268,13 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
 
     let prompt = '';
     if (level === 'Beginner') {
-        prompt = `Generate a 'Beginner'-level training course. The course should be comprehensive, roughly equivalent to 3-4 pages of content. 
-        It needs a creative, engaging title and a brief description.
-        Structure it with 3-4 modules. 
-        Each module must have a title and 3-4 relevant topics. 
-        Each topic must have a title and detailed, helpful content of at least 150-200 words, using markdown for formatting. 
-        Cover a random but logical mix of topics from the knowledge base, focusing on basic operations, safety procedures (like LOTO), HMI navigation, and simple troubleshooting for both Megajet and Grasselli systems. Ensure the content is easy for a new operator to understand.`;
-    } else { // Advanced
-        prompt = `Generate an 'Advanced'-level training course. The course must be extremely detailed and technical, equivalent to 7-8 pages of content.
-        It needs a professional, specific title and a detailed description of its advanced objectives.
-        Structure it with 5-6 modules. 
-        Each module must have a title and 4-5 highly specific topics. 
-        Each topic must have a title and very in-depth, expert-level content of at least 250-300 words, using markdown for formatting. 
-        The content should cover complex diagnostics, advanced calibration procedures (like density settings and vision system tuning), system optimization for yield, preventative maintenance, and in-depth troubleshooting of complex faults (e.g., intensifier leaks, actuator failures, bad cutter drives) for both Megajet and Grasselli systems. 
-        Describe complex diagrams where appropriate using the format [DIAGRAM: A detailed description of the diagram's content].`;
+        prompt = `Generate a 'Beginner'-level training course. Focus on fundamentals, safety (LOTO), basic HMI, and machine intro. 3 modules, 3 topics each.`;
+    } else if (level === 'Moderate') {
+        prompt = `Generate a 'Moderate'-level training course. Focus on daily operations, standard maintenance, nozzle changes, belt tensioning, and common fault recovery. 4 modules, 3 topics each.`;
+    } else if (level === 'Advanced') {
+        prompt = `Generate an 'Advanced'-level training course. Focus on deep diagnostics, vision system tuning, density calculations, intensifier theory, and predictive repairs. 5 modules, 4 topics each.`;
+    } else { // Expert
+        prompt = `Generate an 'Expert'-level training course. Focus on servomaster drive programming, motion scope analysis, advanced hydraulic chemistry, and facility-wide yield optimization strategy. 6 modules, 5 topics each.`;
     }
 
 
@@ -295,7 +289,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
                     type: Type.OBJECT,
                     properties: {
                         title: { type: Type.STRING },
-                        level: { type: Type.STRING, enum: ['Beginner', 'Advanced'] },
+                        level: { type: Type.STRING, enum: ['Beginner', 'Moderate', 'Advanced', 'Expert'] },
                         description: { type: Type.STRING },
                         modules: {
                             type: Type.ARRAY,
@@ -334,6 +328,50 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
     } catch (error) {
         console.error("Error calling Gemini API for training course generation:", error);
         throw new Error("The AI service could not generate a training course. Please try again.");
+    }
+};
+
+/**
+ * Generates a test based on a training course.
+ */
+export const generateTrainingTest = async (course: TrainingCourse): Promise<any> => {
+    if (!navigator.onLine) throw new Error("Offline: Neural testing platform unavailable.");
+
+    const model = 'gemini-3-flash-preview';
+    const systemInstruction = `You are Brett, the PecoFoods master of exams. Your task is to generate a difficult but fair multiple-choice test based ONLY on the provided training course content. 
+    You must provide 10 questions. Each question must have 4 options and 1 correct answer index (0-3).`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: `Generate a 10-question test for this course: ${JSON.stringify(course)}`,
+            config: {
+                systemInstruction: systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        courseTitle: { type: Type.STRING },
+                        level: { type: Type.STRING },
+                        questions: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    question: { type: Type.STRING },
+                                    options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                    correctIndex: { type: Type.NUMBER }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        return JSON.parse(response.text);
+    } catch (error) {
+        console.error("Error generating test:", error);
+        throw new Error("Failed to generate system test.");
     }
 };
 
