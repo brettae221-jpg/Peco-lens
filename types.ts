@@ -55,7 +55,8 @@ export enum AppMode {
   Settings = 'settings',
   Admin = 'admin',
   Builder = 'builder',
-  AIChat = 'ai-chat'
+  AIChat = 'ai-chat',
+  DensityCalculator = 'density-calculator'
 }
 
 export interface PMItem {
