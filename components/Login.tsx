@@ -28,8 +28,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setIsLoading(true);
     try {
       // Sign in to Firebase Auth anonymously to satisfy rules (isSignedIn)
-      // In a real prod app, we should use signInWithEmailAndPassword but this environment 
-      // usually requires custom setup for that. Anonymous is a safe bridge for this prototype.
+      if (!auth) {
+        throw new Error('FIREBASE_NOT_INITIALIZED: Configuration may be invalid or missing.');
+      }
+      
       if (!auth.currentUser) {
         await signInAnonymously(auth);
       }
@@ -46,8 +48,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       } else {
         setError('AUTH_REFUSED: Invalid Credentials for Secure Root');
       }
-    } catch (err) {
-      setError('SYSTEM_FAULT: Authentication Service Unreachable');
+    } catch (err: any) {
+      console.error("Login sequence fault:", err);
+      if (err.code === 'auth/unauthorized-domain') {
+        setError('SECURITY_FAULT: Domain not authorized in Firebase Console. Add your GitHub Pages URL to Authorized Domains.');
+      } else if (err.message?.includes('FIREBASE_NOT_INITIALIZED')) {
+        setError('CONFIG_FAULT: Firebase configuration is missing or invalid.');
+      } else {
+        setError(`SYSTEM_FAULT: ${err.message || 'Authentication Service Unreachable'}`);
+      }
     } finally {
       setIsLoading(false);
     }
