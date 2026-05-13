@@ -94,6 +94,23 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           password: newPassword, 
           firstLogin: false 
         });
+
+        // Post to global newsfeed for FIRST login
+        try {
+          const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+          const { db } = await import('../firebase');
+          await addDoc(collection(db, 'newsfeed'), {
+            userId: tempUser.id,
+            userName: tempUser.name || tempUser.username || 'Tactical Tech',
+            userEmail: tempUser.email,
+            type: 'new_login',
+            textContent: `has joined the neural network for the first time. Facility clearance verified.`,
+            timestamp: serverTimestamp(),
+            likes: []
+          });
+        } catch (feedErr) {
+          console.warn("Feed broadcast failed:", feedErr);
+        }
         
         // Auto-login after reset
         const { password: _, ...userToReturn } = tempUser;

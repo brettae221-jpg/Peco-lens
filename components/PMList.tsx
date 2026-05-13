@@ -13,11 +13,15 @@ import {
   ChevronRight,
   ExternalLink
 } from 'lucide-react';
-import { collection, query, orderBy, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, updateDoc, doc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
-import { PMItem } from '../types';
+import { PMItem, User } from '../types';
 
-const PMList: React.FC = () => {
+interface PMListProps {
+  user: User;
+}
+
+const PMList: React.FC<PMListProps> = ({ user }) => {
   const [items, setItems] = useState<PMItem[]>([]);
   const [filter, setFilter] = useState<'All' | 'Pending' | 'Fixed'>('Pending');
   const [loading, setLoading] = useState(true);
@@ -42,6 +46,19 @@ const PMList: React.FC = () => {
       await updateDoc(doc(db, 'pm_items', item.id), {
         status: newStatus
       });
+
+      if (newStatus === 'Fixed') {
+        // Post to newsfeed
+        await addDoc(collection(db, 'newsfeed'), {
+          userId: user.id || 'unknown',
+          userName: user.name || user.username || 'Tactical Tech',
+          userEmail: user.email,
+          type: 'pm_logged',
+          textContent: `has completed critical maintenance on: ${item.partName} (${item.equipmentType}). Systems integrity restored.`,
+          timestamp: serverTimestamp(),
+          likes: []
+        });
+      }
     } catch (error) {
       console.error('Error updating status:', error);
     }

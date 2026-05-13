@@ -44,7 +44,12 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeMode, onNavigate, user }) =
     { id: AppMode.Tools, label: 'Tools', icon: 'Wrench', order: 2, visible: true },
     { id: AppMode.AIChat, label: 'Neural', icon: 'Zap', order: 3, visible: true },
     { id: AppMode.Messages, label: 'Messages', icon: 'MessageSquare', order: 4, visible: true },
-    { id: AppMode.Settings, label: 'Settings', icon: 'Settings', order: 5, visible: true },
+    { id: AppMode.Training, label: 'Academy', icon: 'GraduationCap', order: 5, visible: true },
+    { id: AppMode.Maintenance, label: 'Fix', icon: 'ShieldCheck', order: 6, visible: true },
+    { id: AppMode.Gallery, label: 'Archive', icon: 'Image', order: 7, visible: true },
+    { id: AppMode.Machines, label: 'Assets', icon: 'Box', order: 8, visible: true },
+    { id: AppMode.Calendar, label: 'Schedule', icon: 'Calendar', order: 9, visible: true },
+    { id: AppMode.Settings, label: 'Settings', icon: 'Settings', order: 10, visible: true },
   ].filter(m => m.visible);
 
   const tabs = filteredModules.filter(tab => {
@@ -52,34 +57,36 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeMode, onNavigate, user }) =
     if (!user.accessibleModes) return true;
     // Otherwise check if mode is included
     return user.accessibleModes.includes(tab.id);
-  });
+  }).sort((a, b) => (a.order || 0) - (b.order || 0));
 
   return (
-    <nav className="bg-slate-950 border-t border-white/5 py-3 px-6 flex items-center justify-around shrink-0 z-50">
-      {tabs.map((tab) => {
-        const Icon = getIcon(tab.icon);
-        const isActive = activeMode === tab.id;
-        return (
-          <button
-            key={tab.id}
-            onClick={() => onNavigate(tab.id as AppMode)}
-            className={`flex flex-col items-center space-y-1 transition-all ${
-              isActive ? 'text-brand-red' : 'text-slate-500 hover:text-white'
-            }`}
-          >
-            <div className="relative">
-                <Icon className={`h-6 w-6 ${isActive ? 'fill-brand-red/10' : ''}`} />
-                {isActive && (
-                    <motion.div 
-                        layoutId="nav-glow"
-                        className="absolute inset-0 bg-brand-red/20 blur-lg rounded-full"
-                    />
-                )}
-            </div>
-            <span className="text-[8px] font-black uppercase tracking-widest">{tab.label}</span>
-          </button>
-        );
-      })}
+    <nav className="bg-slate-950 border-t border-white/5 py-6 shrink-0 z-50">
+      <div className="flex items-center space-x-10 px-8 overflow-x-auto hide-scrollbar scroll-smooth">
+        {tabs.map((tab) => {
+          const Icon = getIcon(tab.icon);
+          const isActive = activeMode === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onNavigate(tab.id as AppMode)}
+              className={`flex flex-col items-center space-y-3 transition-all shrink-0 min-w-[72px] ${
+                isActive ? 'text-brand-red scale-110' : 'text-slate-600 hover:text-white'
+              }`}
+            >
+              <div className="relative">
+                  <Icon className={`h-7 w-7 ${isActive ? 'fill-brand-red/10' : ''}`} />
+                  {isActive && (
+                      <motion.div 
+                          layoutId="nav-glow"
+                          className="absolute inset-0 bg-brand-red/30 blur-xl rounded-full"
+                      />
+                  )}
+              </div>
+              <span className={`text-[8px] font-black uppercase tracking-[0.2em] text-center whitespace-nowrap ${isActive ? 'text-white' : ''}`}>{tab.label}</span>
+            </button>
+          );
+        })}
+      </div>
     </nav>
   );
 };
