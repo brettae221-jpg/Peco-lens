@@ -22,6 +22,7 @@ import Machines from './components/Machines';
 import Settings from './components/Settings';
 import Builder from './components/Builder';
 import AIChat from './components/AIChat';
+import NewsFeed from './components/NewsFeed';
 import DensityCalculator from './components/DensityCalculator';
 import MegajetScope from './components/MegajetScope';
 import { AppMode, User, TroubleshootingScenario, TrainingCourse, LogEntry, Blueprint, NewsPost } from './types';
@@ -145,6 +146,8 @@ const App: React.FC = () => {
         return <Settings user={user as User} />;
       case AppMode.AIChat:
         return <AIChat user={user as User} />;
+      case AppMode.NewsFeed:
+        return <NewsFeed user={user as User} />;
       case AppMode.DensityCalculator:
         return <DensityCalculator />;
       case AppMode.Scope:
@@ -205,6 +208,7 @@ const App: React.FC = () => {
       case AppMode.Admin: return 'Admin Override';
       case AppMode.Builder: return 'AI Architecture';
       case AppMode.AIChat: return 'Neural AI Diagnostic';
+      case AppMode.NewsFeed: return 'Facility Pulse';
       case AppMode.DensityCalculator: return 'HMI Matrix Calculator';
       case AppMode.Scope: return 'MJ Motion Scope';
       default: return 'PecoFoods';
@@ -247,8 +251,8 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-hidden relative">
         <Content />
         
-        {/* Global Back Button - Only visible when not on Dashboard */}
-        {activeMode !== AppMode.Dashboard && (
+        {/* Global Back Button - Only visible when not on Dashboard or Lenses (which has its own nav) */}
+        {activeMode !== AppMode.Dashboard && activeMode !== AppMode.Lenses && (
           <motion.button
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
