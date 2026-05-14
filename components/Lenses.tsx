@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Camera, 
+  ArrowLeft,
   Eye, 
   Droplet, 
   Box, 
@@ -29,12 +30,16 @@ import { analyzeLensScan } from '../services/geminiService';
 
 type LensView = 'menu' | 'ar' | 'poultry' | 'megajet' | 'grasselli' | 'vision' | 'thermal' | 'calibration' | 'scope';
 
-const Lenses: React.FC = () => {
+interface LensesProps {
+  onBack: () => void;
+}
+
+const Lenses: React.FC<LensesProps> = ({ onBack }) => {
   const [view, setView] = useState<LensView>('menu');
 
   const renderView = () => {
     switch (view) {
-      case 'menu': return <LensMenu onSelect={setView} />;
+      case 'menu': return <LensMenu onSelect={setView} onBack={onBack} />;
       default: return <LiveLensView mode={view} onClose={() => setView('menu')} />;
     }
   };
@@ -46,7 +51,7 @@ const Lenses: React.FC = () => {
   );
 };
 
-const LensMenu: React.FC<{ onSelect: (v: LensView) => void }> = ({ onSelect }) => {
+const LensMenu: React.FC<{ onSelect: (v: LensView) => void; onBack: () => void }> = ({ onSelect, onBack }) => {
   const lenses = [
     { id: 'ar', name: 'AR Lens', icon: Camera, color: 'bg-brand-red', machine: 'All Systems' },
     { id: 'poultry', name: 'Poultry Lens', icon: Eye, color: 'bg-emerald-500', machine: 'Manual Upload Only' },
@@ -59,7 +64,17 @@ const LensMenu: React.FC<{ onSelect: (v: LensView) => void }> = ({ onSelect }) =
   ];
 
   return (
-    <div className="h-full overflow-y-auto p-8 space-y-6 pb-24">
+    <div className="h-full overflow-y-auto p-8 space-y-6 pb-24 relative">
+      <div className="flex items-center space-x-4 mb-4">
+        <button 
+          onClick={onBack}
+          className="p-3 bg-white/5 rounded-2xl border border-white/10 text-white active:scale-95 transition-all"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        <div className="h-1 w-20 bg-brand-red/20 rounded-full" />
+      </div>
+      
       <div className="mb-10">
         <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">System <span className="text-brand-red">Lenses</span></h2>
         <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">Select an intelligence layer to project onto equipment.</p>
@@ -224,18 +239,24 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bottom-24 bg-black overflow-hidden z-40">
+    <div className="fixed inset-0 bg-black overflow-hidden z-40">
       {/* Target/Focus Overlay */}
-      <div className="absolute inset-0 border-[20px] border-black/20 pointer-events-none z-10">
-          <div className="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-white/40" />
-          <div className="absolute top-0 right-0 w-10 h-10 border-t-2 border-r-2 border-white/40" />
-          <div className="absolute bottom-0 left-0 w-10 h-10 border-b-2 border-l-2 border-white/40" />
-          <div className="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-white/40" />
+      <div className="absolute inset-0 border-[2px] border-white/10 pointer-events-none z-10">
+          <div className="absolute top-4 left-4 w-12 h-12 border-t-2 border-l-2 border-brand-red/60" />
+          <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-brand-red/60" />
+          <div className="absolute bottom-32 left-4 w-12 h-12 border-b-2 border-l-2 border-brand-red/60" />
+          <div className="absolute bottom-32 right-4 w-12 h-12 border-b-2 border-r-2 border-brand-red/60" />
       </div>
 
       {/* Viewfinder Header */}
       <div className="absolute top-0 inset-x-0 p-6 flex justify-between items-center z-50 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
         <div className="flex items-center space-x-4">
+          <button 
+            onClick={onClose}
+            className="p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 text-white active:scale-95 transition-all mr-2"
+          >
+            <ArrowLeft className="h-6 w-6" />
+          </button>
           <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-white flex items-center justify-center">
             <info.icon className="h-6 w-6" />
           </div>
@@ -410,13 +431,7 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
       </AnimatePresence>
 
       {/* Control Buttons */}
-      <div className="absolute bottom-8 inset-x-8 flex space-x-4 z-40">
-        <button 
-           onClick={onClose}
-           className="h-20 w-20 bg-white/10 backdrop-blur-xl border border-white/10 rounded-[2rem] text-white flex items-center justify-center active:scale-95 transition-all"
-        >
-            <X className="h-7 w-7" />
-        </button>
+      <div className="absolute bottom-10 inset-x-8 flex space-x-4 z-40">
         <button 
            onClick={() => handleScan()}
            disabled={isScanning}

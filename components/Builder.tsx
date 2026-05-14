@@ -21,11 +21,33 @@ type BuilderView = 'menu' | 'training' | 'course' | 'analytics';
 
 const Builder: React.FC = () => {
     const [view, setView] = useState<BuilderView>('menu');
+    const [activeSubView, setActiveSubView] = useState<string>('New Module');
+    const [directive, setDirective] = useState('');
+    const [generating, setGenerating] = useState(false);
+    const [modules, setModules] = useState([
+        { id: 'MODULE_NX_01', name: 'Grasselli Alignment', date: '2D AGO' },
+        { id: 'MODULE_NX_02', name: 'Vacuum Seal Logic', date: '5D AGO' },
+        { id: 'MODULE_NX_03', name: 'High-Temp Probe', date: '1W AGO' },
+        { id: 'MODULE_NX_04', name: 'Conveyor Sync', date: '2W AGO' }
+    ]);
+
+    const handleGenerate = () => {
+        if (!directive) return;
+        setGenerating(true);
+        
+        // Simulating AI menu building
+        setTimeout(() => {
+            const newId = `MODULE_AI_${Math.floor(Math.random() * 99)}`;
+            setModules([{ id: newId, name: directive.length > 20 ? directive.substring(0, 17) + '...' : directive, date: 'JUST NOW' }, ...modules]);
+            setGenerating(false);
+            setDirective('');
+        }, 2000);
+    };
 
     const menuItems = [
       { id: 'training', name: 'Training Builder', icon: Wrench, color: 'bg-yellow-600', submenus: ['New Module', 'Edit Scenario', 'Import Asset', 'Export SCORM'] },
       { id: 'course', name: 'Course Designer', icon: Layers, color: 'bg-orange-600', submenus: ['Curriculum', 'Certification', 'Quiz Logic', 'Prerequisites'] },
-      { id: 'analytics', name: 'Analytics', icon: BarChart3, color: 'bg-blue-600', submenus: ['Pass Rates', 'Time on Task', 'Skill Matrix', 'User Reports'] },
+      { id: 'analytics', name: 'Analytics Monitor', icon: BarChart3, color: 'bg-blue-600', submenus: ['Pass Rates', 'Time on Task', 'Skill Matrix', 'User Reports'] },
     ];
 
     if (view !== 'menu') {
@@ -34,7 +56,7 @@ const Builder: React.FC = () => {
         <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
           <div className="p-8 flex items-center justify-between border-b border-white/5 bg-slate-950/80 backdrop-blur-md shrink-0">
             <div className="flex items-center space-x-6">
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setView('menu')} className="p-3 bg-white/5 rounded-full text-white border border-white/5">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setView('menu'); setActiveSubView('New Module'); }} className="p-3 bg-white/5 rounded-full text-white border border-white/5">
                 <ArrowLeft className="h-6 w-6" />
               </motion.button>
               <div>
@@ -44,15 +66,21 @@ const Builder: React.FC = () => {
             </div>
             <div className="flex items-center space-x-4">
                <motion.button whileTap={{ scale: 0.9 }} className="px-6 py-2.5 bg-yellow-500 rounded-full text-slate-950 text-[10px] font-black uppercase tracking-widest flex items-center shadow-2xl shadow-yellow-500/20">
-                  <Play className="h-4 w-4 mr-2" />
-                  COMPILE
+                  {generating ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Play className="h-4 w-4 mr-2" />}
+                  {generating ? 'PROCESSING' : 'COMPILE'}
                </motion.button>
             </div>
           </div>
 
           <div className="bg-slate-900/40 backdrop-blur-md px-8 py-4 flex space-x-4 overflow-x-auto hide-scrollbar border-b border-white/5 shrink-0">
             {activeItem.submenus.map(sub => (
-              <button key={sub} className="flex-shrink-0 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5 text-slate-500 border border-white/5 hover:text-white transition-all">
+              <button 
+                key={sub} 
+                onClick={() => setActiveSubView(sub)}
+                className={`flex-shrink-0 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${
+                    activeSubView === sub ? 'bg-white text-slate-950 border-white' : 'bg-white/5 text-slate-500 border-white/5 hover:text-white'
+                }`}
+              >
                 {sub}
               </button>
             ))}
@@ -61,7 +89,7 @@ const Builder: React.FC = () => {
           <div className="flex-1 p-10 overflow-y-auto no-scrollbar pb-32">
              <div className="bg-white/5 border border-white/5 rounded-[3rem] p-12 border-l-4 border-l-yellow-500 mb-12">
                  <div className="flex items-center space-x-6 mb-10 text-white">
-                    <Zap className="h-10 w-10 text-yellow-500" />
+                    <Zap className={`h-10 w-10 text-yellow-500 ${generating ? 'animate-pulse' : ''}`} />
                     <div>
                         <h4 className="text-2xl font-black uppercase tracking-tight">AI ARCHITECT</h4>
                         <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Natural Language Logic Expansion</p>
@@ -70,36 +98,43 @@ const Builder: React.FC = () => {
                  
                  <div className="bg-black/40 rounded-[2rem] p-8 border border-white/5 mb-10">
                     <p className="text-slate-400 font-medium leading-relaxed italic">
-                        "E.g.: Generate a 10-step module for Grasselli Blade Alignment using thermal data markers."
+                        {generating ? '"Initializing neural weights... identifying facility bottlenecks... building menu tree..."' : '"E.g.: Generate a 10-step module for Grasselli Blade Alignment using thermal data markers."'}
                     </p>
                  </div>
 
                  <div className="flex space-x-4">
                     <input 
                       type="text" 
+                      value={directive}
+                      onChange={e => setDirective(e.target.value)}
+                      disabled={generating}
                       placeholder="Input Directive..."
-                      className="flex-1 h-20 bg-white/5 rounded-[2rem] border border-white/5 px-10 text-white font-black uppercase tracking-widest outline-none focus:border-yellow-500/50 transition-all"
+                      className="flex-1 h-20 bg-white/5 rounded-[2rem] border border-white/5 px-10 text-white font-black uppercase tracking-widest outline-none focus:border-yellow-500/50 transition-all disabled:opacity-50"
                     />
-                    <button className="h-20 px-12 bg-yellow-500 text-slate-950 font-black rounded-[2rem] hover:scale-105 active:scale-95 transition-all shadow-2xl">
-                       GENERATE
+                    <button 
+                      onClick={handleGenerate}
+                      disabled={!directive || generating}
+                      className="h-20 px-12 bg-yellow-500 text-slate-950 font-black rounded-[2rem] hover:scale-105 active:scale-95 transition-all shadow-2xl disabled:opacity-50"
+                    >
+                       {generating ? 'PROFILING...' : 'GENERATE'}
                     </button>
                  </div>
              </div>
 
              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {[1, 2, 3, 4].map(idx => (
+                {modules.map((m, idx) => (
                   <motion.div 
-                    key={idx}
+                    key={m.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.1 }}
+                    transition={{ delay: idx * 0.05 }}
                     className="p-8 bg-white/2 rounded-[2.5rem] border border-white/5 hover:bg-white/5 transition-all cursor-pointer group"
                   >
                     <div className="h-12 w-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                       <Layout className="h-6 w-6 text-slate-500" />
+                       <Layout className={`h-6 w-6 ${m.date === 'JUST NOW' ? 'text-yellow-500' : 'text-slate-500'}`} />
                     </div>
-                    <h5 className="font-black text-white uppercase mb-2">MODULE_NX_0{idx}</h5>
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Last Update: 2D AGO</p>
+                    <h5 className="font-black text-white uppercase mb-2 truncate">{m.name}</h5>
+                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{m.date}</p>
                   </motion.div>
                 ))}
              </div>

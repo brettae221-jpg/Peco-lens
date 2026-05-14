@@ -53,6 +53,28 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           setTempUser(user);
           setIsResettingPassword(true);
         } else {
+          // Post to global newsfeed for EVERY login if user wants the "fb style" feel
+          try {
+            const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
+            const { db: fireDb } = await import('../firebase');
+            await addDoc(collection(fireDb, 'newsfeed'), {
+              userId: user.id || 'unknown',
+              userName: user.name || user.username || 'Tactical Tech',
+              userEmail: user.email,
+              type: 'new_login',
+              textContent: `has established a secure neural connection. Facility systems online.`,
+              timestamp: serverTimestamp(),
+              likes: []
+            });
+          } catch (feedErr) {
+            const errInfo = {
+              error: feedErr instanceof Error ? feedErr.message : String(feedErr),
+              operationType: 'create',
+              path: 'newsfeed'
+            };
+            console.warn("Feed broadcast failed:", JSON.stringify(errInfo));
+          }
+
           const { password: _, ...userToReturn } = user;
           onLogin(userToReturn);
         }

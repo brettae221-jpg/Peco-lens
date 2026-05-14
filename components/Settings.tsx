@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { usePWAUpdate } from '../services/pwaService';
+import { usePWAUpdate, useInstallPrompt } from '../services/pwaService';
 import { User } from '../types';
 import { 
   User as UserIcon, 
@@ -37,14 +37,15 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ user }) => {
     const [view, setView] = useState<SettingsView>('menu');
+    const [activeSubView, setActiveSubView] = useState<string>('');
     const { updateAvailable, checkForUpdates, applyUpdate, checking, lastRemoteUpdate, issueRemoteUpdate } = usePWAUpdate();
     const { installPrompt, promptInstall } = useInstallPrompt();
 
     const menuItems = [
-      { id: 'profile', name: 'Profile', icon: UserIcon, color: 'bg-blue-600', submenus: ['Basic Info', 'Security', 'Role Access', 'Activity Log'] },
-      { id: 'connectivity', name: 'Connectivity', icon: Wifi, color: 'bg-emerald-600', submenus: ['WiFi Setup', 'Neural Link', 'Cloud Sync', 'Bluetooth'] },
-      { id: 'app', name: 'App Settings', icon: SettingsIcon, color: 'bg-brand-red', submenus: ['Theme', 'Language', 'Cache', 'Reset Factory'] },
-      { id: 'software', name: 'Update Engine', icon: RefreshCcw, color: 'bg-indigo-600', submenus: ['Software Update', 'Kernel Version', 'Rollback'] },
+      { id: 'profile', name: 'Profile Matrix', icon: UserIcon, color: 'bg-blue-600', submenus: ['Basic Info', 'Security', 'Role Access', 'Activity Log'] },
+      { id: 'connectivity', name: 'Neural Link', icon: Wifi, color: 'bg-emerald-600', submenus: ['WiFi Setup', 'Neural Link', 'Cloud Sync', 'Bluetooth'] },
+      { id: 'app', name: 'Interface Settings', icon: SettingsIcon, color: 'bg-brand-red', submenus: ['Theme', 'Language', 'Cache', 'Reset Factory'] },
+      { id: 'software', name: 'Core Engine', icon: RefreshCcw, color: 'bg-indigo-600', submenus: ['Software Update', 'Kernel Version', 'Rollback'] },
       { id: 'install', name: 'Deployment', icon: Download, color: 'bg-purple-600', submenus: ['Install PWA', 'Android APK', 'iOS Config'] },
     ];
 
@@ -56,7 +57,6 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
 
       const filename = platform === 'android' ? 'PecoFoods_Enterprise.apk' : 'PecoFoods_Enterprise.mobileconfig';
       
-      // Instead of an unparsable text file, let's provide a "Manual Implementation Guide" PDF-style text
       const content = `PECOFOODS INDUSTRIAL INTELLIGENCE - NATIVE DEPLOYMENT TICKET
 ============================================================
 PLATFORM: ${platform.toUpperCase()}
@@ -88,13 +88,100 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
       URL.revokeObjectURL(url);
     };
 
+    const renderSubmenuContent = () => {
+        const sub = activeSubView || menuItems.find(i => i.id === view)?.submenus[0];
+
+        switch (sub) {
+            case 'Basic Info':
+                return (
+                    <div className="space-y-6">
+                        <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5">
+                            <h4 className="text-white font-black uppercase tracking-tight mb-6">User Metadata</h4>
+                            <div className="space-y-4">
+                                <div className="flex justify-between items-center py-4 border-b border-white/5">
+                                    <span className="text-slate-500 text-[10px] font-black uppercase">Display Name</span>
+                                    <span className="text-white font-bold">{user?.name || 'Operator'}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-4 border-b border-white/5">
+                                    <span className="text-slate-500 text-[10px] font-black uppercase">Facility Email</span>
+                                    <span className="text-white font-bold">{user?.email}</span>
+                                </div>
+                                <div className="flex justify-between items-center py-4">
+                                    <span className="text-slate-500 text-[10px] font-black uppercase">Role Authority</span>
+                                    <span className="text-brand-red font-black uppercase tracking-widest">{user?.role}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'WiFi Setup':
+                return (
+                    <div className="space-y-6">
+                        <div className="p-8 bg-emerald-500/10 border border-emerald-500/20 rounded-[2.5rem]">
+                            <div className="flex items-center space-x-3 mb-4">
+                                <Wifi className="h-5 w-5 text-emerald-500" />
+                                <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest">Active Connection</span>
+                            </div>
+                            <h4 className="text-white text-xl font-black uppercase mb-2">Facility_G-Network_04</h4>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest opacity-60">Status: Synchronized (94Mbps)</p>
+                        </div>
+                        <div className="grid grid-cols-1 gap-2">
+                            {['Guest_Access', 'Machine_Backbone', 'Admin_Neural_Link'].map(net => (
+                                <button key={net} className="w-full p-6 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/10 transition-all">
+                                    <span className="text-white font-black text-[10px] uppercase tracking-widest">{net}</span>
+                                    <Lock className="h-4 w-4 text-slate-700" />
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                );
+            case 'Theme':
+                return (
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            {[
+                                { name: 'Peco Dark', color: 'bg-slate-900', active: true },
+                                { name: 'Facility White', color: 'bg-white', active: false },
+                                { name: 'Amber Alert', color: 'bg-amber-950', active: false },
+                                { name: 'Deep Sea', color: 'bg-blue-950', active: false },
+                            ].map(t => (
+                                <button key={t.name} className={`p-8 rounded-[2rem] border ${t.active ? 'border-brand-red bg-white/10' : 'border-white/5 bg-white/2'} flex flex-col items-center space-y-4`}>
+                                    <div className={`h-12 w-12 rounded-xl ${t.color} border border-white/10`} />
+                                    <span className="text-[10px] font-black text-white uppercase tracking-widest">{t.name}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                );
+            case 'Cache':
+                return (
+                    <div className="space-y-6">
+                        <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5 flex items-center justify-between">
+                            <div>
+                                <h4 className="text-white font-black uppercase tracking-tight">System Cache</h4>
+                                <p className="text-slate-500 text-[10px] font-black uppercase mt-1">42.4 MB of neural data</p>
+                            </div>
+                            <button className="px-6 py-3 bg-brand-red/10 text-brand-red border border-brand-red/20 rounded-xl font-black text-[10px] uppercase">Purge Memory</button>
+                        </div>
+                    </div>
+                );
+            default:
+                return (
+                    <div className="flex flex-col items-center justify-center py-20 opacity-20">
+                        <Database className="h-16 w-16 mb-4" />
+                        <p className="font-black uppercase tracking-widest text-[10px]">Neural Data Node: {sub}</p>
+                    </div>
+                );
+        }
+    };
+
     if (view !== 'menu') {
       const activeItem = menuItems.find(i => i.id === view)!;
       return (
         <div className="h-full bg-slate-950 flex flex-col overflow-hidden">
           <div className="p-8 flex items-center justify-between border-b border-white/5 bg-slate-950/80 backdrop-blur-md shrink-0">
             <div className="flex items-center space-x-6">
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => setView('menu')} className="p-3 bg-white/5 rounded-full text-white border border-white/5">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={() => { setView('menu'); setActiveSubView(''); }} className="p-3 bg-white/5 rounded-full text-white border border-white/5">
                 <ArrowLeft className="h-6 w-6" />
               </motion.button>
               <div>
@@ -112,7 +199,15 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
 
           <div className="bg-slate-900/40 backdrop-blur-md px-8 py-4 flex space-x-4 overflow-x-auto hide-scrollbar border-b border-white/5 shrink-0">
             {activeItem.submenus.map(sub => (
-              <button key={sub} className="flex-shrink-0 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-white/5 text-slate-500 border border-white/5 hover:text-white transition-all">
+              <button 
+                key={sub} 
+                onClick={() => setActiveSubView(sub)}
+                className={`flex-shrink-0 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest border transition-all ${
+                    (activeSubView === sub || (!activeSubView && activeItem.submenus[0] === sub)) 
+                        ? 'bg-white text-slate-950 border-white' 
+                        : 'bg-white/5 text-slate-500 border-white/5 hover:text-white'
+                }`}
+              >
                 {sub}
               </button>
             ))}
@@ -120,7 +215,7 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
 
           <div className="flex-1 p-10 overflow-y-auto no-scrollbar pb-32">
              <div className="max-w-2xl mx-auto space-y-6">
-                {view === 'software' ? (
+                {(view === 'software' && (!activeSubView || activeSubView === 'Software Update')) ? (
                   <div className="space-y-8">
                      <div className="bg-white/5 border border-white/5 p-10 rounded-[3rem]">
                         <div className="flex items-center justify-between mb-10">
@@ -188,7 +283,7 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                         </div>
                      )}
                   </div>
-                ) : view === 'install' ? (
+                ) : (view === 'install' && (!activeSubView || activeSubView === 'Install PWA' || activeSubView === 'iOS Config' || activeSubView === 'Android APK')) ? (
                   <div className="space-y-8">
                     {/* Native Installation Section */}
                     <div className="bg-white/5 border border-white/5 p-10 rounded-[3rem]">
@@ -284,7 +379,7 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                        </ul>
                     </div>
                   </div>
-                ) : view === 'app' ? (
+                ) : (view === 'app' && (!activeSubView || activeSubView === 'Theme')) ? (
                    <div className="space-y-4">
                       {[
                         { name: 'Dark Mode Protocol', desc: 'Neural contrast adjustment', default: true },
@@ -315,12 +410,7 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                         </motion.div>
                       ))}
                    </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-20 opacity-20">
-                     <Lock className="h-16 w-16 mb-4" />
-                     <p className="font-black uppercase tracking-widest text-[10px]">Module Level 4 Encryption Active</p>
-                  </div>
-                )}
+                ) : renderSubmenuContent()}
 
                 <button className="w-full h-20 mt-10 bg-brand-red/10 hover:bg-brand-red text-brand-red hover:text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-[2rem] border border-brand-red/20 transition-all flex items-center justify-center space-x-3 group">
                    <LogOut className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />

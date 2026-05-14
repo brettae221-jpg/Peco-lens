@@ -15,8 +15,31 @@ import {
   LucideIcon
 } from 'lucide-react';
 import { AppMode, User, NewsPost } from '../types';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { collection, query, orderBy, onSnapshot, limit, addDoc, serverTimestamp } from 'firebase/firestore';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+}
 
 interface DashboardProps {
   user: User;
@@ -26,6 +49,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [statusText, setStatusText] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'newsfeed'), orderBy('timestamp', 'desc'), limit(50));
@@ -36,6 +60,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
         timestamp: doc.data().timestamp?.toDate() || new Date()
       } as NewsPost));
       setPosts(newPosts);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'newsfeed');
     });
     return () => unsubscribe();
   }, []);
@@ -43,6 +69,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
   const handlePostStatus = async () => {
     if (!statusText.trim()) return;
     try {
+      setIsPosting(true);
       await addDoc(collection(db, 'newsfeed'), {
         userId: user.id || 'unknown',
         userEmail: user.email,
@@ -54,7 +81,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
       });
       setStatusText('');
     } catch (e) {
-      console.error("Failed to post status", e);
+      handleFirestoreError(e, OperationType.CREATE, 'newsfeed');
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -98,19 +127,55 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
     }
   };
 
+  const stories = [
+    { name: 'Your Connect', online: true, color: 'bg-brand-red' },
+    { name: 'Facility A', online: true, color: 'bg-emerald-500' },
+    { name: 'Shift B', online: false, color: 'bg-blue-500' },
+    { name: 'AI Node', online: true, color: 'bg-indigo-500' },
+    { name: 'Maintenance', online: true, color: 'bg-orange-500' },
+  ];
+
   return (
     <div className="h-full flex flex-col bg-slate-950 overflow-y-auto hide-scrollbar pb-32">
       {/* Feed Header */}
-      <div className="px-8 pt-12 pb-8 sticky top-0 bg-slate-950/80 backdrop-blur-xl z-20">
-        <h2 className="text-4xl font-black text-white tracking-tighter uppercase mb-2">
-          Global <span className="text-brand-red">Feed</span>
-        </h2>
-        <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest">
-            Synchronized Neural Activity & Facility Logs
-        </p>
+      <div className="px-8 pt-12 pb-8 sticky top-0 bg-slate-950/80 backdrop-blur-xl z-20 border-b border-white/5 flex justify-between items-center">
+        <div>
+          <h2 className="text-4xl font-black text-white tracking-tighter uppercase mb-1">
+            Global <span className="text-brand-red">Feed</span>
+          </h2>
+          <p className="text-slate-500 font-bold uppercase text-[9px] tracking-widest flex items-center">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse mr-2" />
+            Synchronized Neural Activity
+          </p>
+        </div>
+        <div className="flex -space-x-2">
+            {[1,2,3].map(i => (
+                <div key={i} className="h-8 w-8 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-500">
+                    {String.fromCharCode(64+i)}
+                </div>
+            ))}
+            <div className="h-8 w-8 rounded-full border-2 border-slate-950 bg-brand-red flex items-center justify-center text-[10px] font-black text-white">
+                +8
+            </div>
+        </div>
       </div>
 
-      <div className="px-6 space-y-6 max-w-2xl mx-auto w-full">
+      <div className="px-6 space-y-8 max-w-2xl mx-auto w-full pt-8">
+        
+        {/* Stories Section (FB Style) */}
+        <div className="flex space-x-4 overflow-x-auto pb-4 hide-scrollbar">
+            {stories.map((story, i) => (
+                <div key={i} className="shrink-0 flex flex-col items-center space-y-2">
+                    <div className={`h-20 w-20 rounded-[2rem] p-1 border-2 ${story.online ? 'border-brand-red' : 'border-slate-800'}`}>
+                        <div className={`h-full w-full rounded-[1.7rem] ${story.color} flex items-center justify-center text-white font-black text-xl shadow-inner`}>
+                            {story.name[0]}
+                        </div>
+                    </div>
+                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{story.name}</span>
+                </div>
+            ))}
+        </div>
+
         {/* Post Box */}
         <div className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 shadow-2xl">
            <div className="flex items-start space-x-4">
@@ -156,41 +221,50 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.05 }}
-                  className="bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden hover:bg-white/10 transition-colors shadow-xl"
+                  className="bg-white/5 border border-white/5 rounded-[2.5rem] overflow-hidden hover:bg-white/10 transition-all duration-300 shadow-xl group/card"
                 >
                   <div className="p-8">
                     <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center space-x-3">
-                         <div className="h-10 w-10 rounded-2xl bg-white/5 flex items-center justify-center font-black text-white shrink-0">
+                      <div className="flex items-center space-x-4">
+                         <div className="h-12 w-12 rounded-[1.2rem] bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center font-black text-white shrink-0 border border-white/10 shadow-lg">
                              {post.userName?.[0].toUpperCase() || '?'}
                          </div>
                          <div>
-                            <h4 className="text-white font-black text-sm tracking-tight">{post.userName}</h4>
-                            <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">
-                               {post.timestamp instanceof Date ? post.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                            </p>
+                            <h4 className="text-white font-black text-sm tracking-tight group-hover/card:text-brand-red transition-colors">{post.userName}</h4>
+                            <div className="flex items-center space-x-2">
+                                <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">
+                                   {post.timestamp instanceof Date ? post.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                                </p>
+                                <span className="h-0.5 w-0.5 rounded-full bg-slate-700" />
+                                <span className="text-[8px] font-black text-slate-700 uppercase">Facility Sync</span>
+                            </div>
                          </div>
                       </div>
-                      <button className="text-slate-600 hover:text-white transition-colors">
+                      <button className="h-10 w-10 bg-white/5 rounded-full flex items-center justify-center text-slate-600 hover:text-white transition-colors opacity-0 group-hover/card:opacity-100">
                          <MoreHorizontal className="h-5 w-5" />
                       </button>
                     </div>
 
-                    <div className="space-y-4">
-                       <div className="flex items-center space-x-3">
-                          <div className={`p-2 rounded-lg bg-white/5 ${colorClass}`}>
+                    <div className="space-y-5">
+                       <div className="flex items-start space-x-3">
+                          <div className={`mt-1 p-2 rounded-lg bg-white/5 flex-shrink-0 ${colorClass}`}>
                              <Icon className="h-4 w-4" />
                           </div>
-                          <p className="text-slate-200 text-sm leading-relaxed">
-                             <span className="font-black text-white mr-1">{post.userName}</span>
-                             {post.type === 'status_update' ? '' : post.textContent}
-                          </p>
+                          <div className="flex-1">
+                             <p className="text-slate-300 text-sm leading-relaxed">
+                                <span className="font-black text-white mr-2">{post.userName}</span>
+                                {post.type === 'status_update' ? '' : post.textContent}
+                             </p>
+                          </div>
                        </div>
                        
                        {post.type === 'status_update' && (
-                         <p className="text-xl font-medium text-white/90 leading-snug pl-1">
-                            {post.textContent}
-                         </p>
+                         <div className="relative">
+                            <div className="absolute -left-4 top-0 bottom-0 w-1 bg-brand-red/30 rounded-full" />
+                            <p className="text-xl font-medium text-white/95 leading-relaxed pl-2 tracking-tight">
+                                {post.textContent}
+                            </p>
+                         </div>
                        )}
 
                        {post.metadata?.testScore !== undefined && (
