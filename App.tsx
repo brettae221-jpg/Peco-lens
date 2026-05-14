@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import Header from './components/Header';
+import Header from './Header';
 import BottomNav from './components/BottomNav';
 import { 
   ArrowLeft,
@@ -23,8 +23,9 @@ import Settings from './components/Settings';
 import Builder from './components/Builder';
 import AIChat from './components/AIChat';
 import DensityCalculator from './components/DensityCalculator';
+import MegajetScope from './components/MegajetScope';
 import { AppMode, User, TroubleshootingScenario, TrainingCourse, LogEntry, Blueprint, NewsPost } from './types';
-import { initialTrainingCourses } from './trainingCourses';
+import { initialTrainingCourses } from './public/trainingCourses';
 import { initialDiagrams } from './initialDiagrams';
 import { usePWAUpdate } from './services/pwaService';
 
@@ -164,6 +165,8 @@ const App: React.FC = () => {
         return <AIChat user={user as User} />;
       case AppMode.DensityCalculator:
         return <DensityCalculator />;
+      case AppMode.Scope:
+        return <MegajetScope />;
       case AppMode.Admin:
         return user?.role === 'Admin' ? <AdminMenu user={user as User} /> : <Dashboard user={user as User} onNavigate={setActiveMode} />;
       case AppMode.Builder:
@@ -221,6 +224,7 @@ const App: React.FC = () => {
       case AppMode.Builder: return 'AI Architecture';
       case AppMode.AIChat: return 'Neural AI Diagnostic';
       case AppMode.DensityCalculator: return 'HMI Matrix Calculator';
+      case AppMode.Scope: return 'MJ Motion Scope';
       default: return 'PecoFoods';
     }
   };

@@ -5,17 +5,27 @@ import './index.css';
 import { registerSW } from 'virtual:pwa-register';
 
 // Register Service Worker for PWA capabilities using vite-plugin-pwa
-registerSW({
+const updateSW = registerSW({
   onNeedRefresh() {
     console.log('New content available, please refresh.');
-    if (confirm('New update available. Reload now?')) {
-      window.location.reload();
-    }
+    // Fire a custom event that pwaService can listen to
+    window.dispatchEvent(new CustomEvent('pwa-update-available'));
   },
   onOfflineReady() {
     console.log('App ready for offline use.');
   },
 });
+
+// Expose registration for the custom pwaService
+(window as any).swRegistration = {
+    waiting: true, // simplified flag for UI check
+    update: updateSW,
+    postMessage: (msg: any) => {
+        if (msg.type === 'SKIP_WAITING') {
+            updateSW(true);
+        }
+    }
+};
 
 console.log("index.tsx is loading");
 const rootElement = document.getElementById('root');
