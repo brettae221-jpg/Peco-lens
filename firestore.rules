@@ -9,11 +9,37 @@ service cloud.firestore {
 
     // Common Primitives
     function isSignedIn() { return request.auth != null; }
-    function isAdmin() { return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'; }
-    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isOwnerEmail(email) { return isSignedIn() && (request.auth.token.email == email || request.auth.token.email == null); }
+    function isAdmin() { return isSignedIn() && (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'); }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
 
-    // PM Items Collection
+    // --- USERS ---
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['email', 'role'])
+          && data.email is string && data.email.size() <= 100
+          && data.role in ['Admin', 'Operator']
+          && (data.keys().size() <= 15);
+      }
+
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      
+      allow create: if isSignedIn(); // Permissive for initial provisioning
+      
+      allow update: if (isSignedIn() && isValidUser(incoming()) && (
+        isAdmin() || 
+        (userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'username', 'dept', 'appPosition', 'password', 'firstLogin', 'accessibleModes']))
+      ));
+      
+      allow delete: if isAdmin();
+    }
+
+    // --- PM ITEMS ---
     match /pm_items/{itemId} {
       function isValidPMItem(data) {
         return data.keys().hasAll(['timestamp', 'equipmentType', 'partName', 'issueDescription', 'severity', 'loggedBy', 'status'])
@@ -22,61 +48,102 @@ service cloud.firestore {
           && data.partName is string && data.partName.size() <= 200
           && data.issueDescription is string && data.issueDescription.size() <= 1000
           && data.severity in ['Low', 'Medium', 'High']
-          && data.loggedBy is string
+          && data.loggedBy is string && data.loggedBy.size() <= 100
           && data.status in ['Pending', 'Fixed'];
       }
 
-      allow list: if isSignedIn();
-      allow get: if isSignedIn();
+      allow read, list: if isSignedIn();
       
-      allow create: if isSignedIn() && isValidPMItem(request.resource.data);
+      allow create: if isSignedIn() && isValidPMItem(incoming());
       
-      allow update: if (isSignedIn() && (
-        // Admin can mark as fixed
-        (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
-        // Owner can edit details if still pending
-        (resource.data.loggedBy == request.auth.token.email && resource.data.status == 'Pending' && isValidPMItem(request.resource.data))
+      allow update: if (isSignedIn() && isValidPMItem(incoming()) && (
+        isAdmin() || (incoming().diff(existing()).affectedKeys().hasOnly(['partName', 'issueDescription', 'severity', 'status']))
       ));
 
       allow delete: if isAdmin();
     }
 
-    // Users Collection
-    match /users/{userId} {
-      function isValidUser(data) {
-        return data.keys().hasAll(['email', 'role'])
-          && data.email is string && data.email.size() <= 100
-          && data.role in ['Admin', 'Operator'];
+    // --- PM LIST (Entries) ---
+    match /pmlist/{entryId} {
+      function isValidPMEntry(data) {
+        return data.keys().hasAll(['source', 'area', 'description', 'timestamp', 'userId', 'userEmail', 'status', 'assignedTo'])
+          && data.source in ['Belt Check', 'Manual Add']
+          && data.area is string && data.area.size() <= 100
+          && data.description is string && data.description.size() <= 1000
+          && data.timestamp is timestamp
+          && data.userId is string
+          && data.userEmail is string
+          && data.status in ['Open', 'Fixed']
+          && data.assignedTo is string;
       }
 
-      allow read: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isSignedIn(); // Allow provisioning initial users or admin adding
-      allow update: if isSignedIn() && (
-        isAdmin() || 
-        (resource.data.email == request.auth.token.email) ||
-        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['password', 'firstLogin']))
-      );
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidPMEntry(incoming());
+      allow update: if (isSignedIn() && isValidPMEntry(incoming()));
       allow delete: if isAdmin();
     }
 
-    // Messages, Alerts, Broadcasts, and PM List Collections
-    match /{collection}/{docId} {
-      allow read, list: if isSignedIn() && collection in ['messages', 'alerts', 'broadcasts', 'pmlist'];
-      allow create: if isSignedIn() && collection in ['messages', 'alerts', 'broadcasts', 'pmlist'];
-      allow delete: if isAdmin() && collection in ['messages', 'alerts', 'broadcasts', 'pmlist'];
+    // --- NEWSFEED ---
+    match /newsfeed/{postId} {
+      function isValidNewsPost(data) {
+        return data.keys().hasAll(['userId', 'userEmail', 'type', 'textContent', 'timestamp'])
+          && data.userId is string
+          && data.userEmail is string
+          && data.textContent is string && data.textContent.size() <= 2000
+          && data.timestamp is timestamp;
+      }
+
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidNewsPost(incoming());
+      allow update: if (isSignedIn() && (
+        (incoming().diff(existing()).affectedKeys().hasOnly(['likes']))
+      ));
+      allow delete: if isAdmin() || (isSignedIn() && isOwner(existing().userId));
     }
 
-    // System Config
+    // --- TEST RESULTS ---
+    match /test_results/{resultId} {
+      function isValidTestResult(data) {
+        return data.keys().hasAll(['userId', 'userEmail', 'testId', 'testTitle', 'score', 'totalQuestions', 'percentage', 'timestamp'])
+          && data.userId is string
+          && data.userEmail is string
+          && data.testId is string
+          && data.testTitle is string
+          && data.score is number
+          && data.totalQuestions is number
+          && data.percentage is number
+          && data.timestamp is timestamp;
+      }
+      allow get: if isValidId(resultId) && isSignedIn() && (isAdmin() || isOwner(resource.data.userId));
+      allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
+      allow create: if isValidId(resultId) && isSignedIn() && isValidTestResult(incoming()) && isOwner(incoming().userId);
+    }
+
+    // --- AI CACHE ---
+    match /ai_cache/{cacheId} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn();
+    }
+
+    // --- SYSTEM CONFIG ---
     match /system/config {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    // System Modules
     match /system_modules/{moduleId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
+    }
+
+    // --- OTHER COLLECTIONS (Alerts, Broadcasts) ---
+    match /alerts/{id} {
+      allow read, list: if isSignedIn();
+      allow create: if isAdmin();
+    }
+    match /broadcasts/{id} {
+      allow read, list: if isSignedIn();
+      allow create: if isAdmin();
     }
   }
 }

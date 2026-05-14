@@ -93,7 +93,6 @@ const App: React.FC = () => {
   const [troubleshootingScenarios, setTroubleshootingScenarios] = useState<TroubleshootingScenario[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [blueprints, setBlueprints] = useState<Blueprint[]>(initialDiagrams);
-  const [newsfeed, setNewsfeed] = useState<NewsPost[]>([]);
 
   useEffect(() => {
     // Load persisted data
@@ -106,23 +105,6 @@ const App: React.FC = () => {
   }, [logs]);
 
   const handleLogin = (loggedInUser: Omit<User, 'password'>) => {
-    const isFirstTime = !loggedInUser.firstLogin;
-    
-    // Create new login newsfeed entry
-    if (isFirstTime) {
-      const post: NewsPost = {
-        id: `post-${Date.now()}`,
-        userId: loggedInUser.id || 'unknown',
-        userEmail: loggedInUser.email,
-        userName: loggedInUser.name || loggedInUser.username || 'New User',
-        type: 'new_login',
-        textContent: 'has established a neural connection for the first time.',
-        timestamp: new Date(),
-        likes: []
-      };
-      setNewsfeed(prev => [post, ...prev]);
-    }
-
     // Force AI Chat into accessible modes for Admins if missing
     if (loggedInUser.role === 'Admin' && loggedInUser.accessibleModes && !loggedInUser.accessibleModes.includes(AppMode.AIChat)) {
         loggedInUser = {
@@ -144,7 +126,7 @@ const App: React.FC = () => {
       case AppMode.Dashboard:
         return <Dashboard user={user as User} onNavigate={setActiveMode} />;
       case AppMode.Lenses:
-        return <Lenses />;
+        return <Lenses onBack={() => setActiveMode(AppMode.Dashboard)} />;
       case AppMode.Tools:
         return <Tools />;
       case AppMode.Maintenance:
