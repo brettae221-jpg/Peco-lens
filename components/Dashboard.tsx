@@ -89,12 +89,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
 
   const handleLike = async (postId: string, currentLikes: string[] = []) => {
     try {
-      const { updateDoc, doc: fireDoc, arrayUnion, arrayRemove } = await import('firebase/firestore');
+      const { updateDoc, doc: fireDoc } = await import('firebase/firestore');
       const postRef = fireDoc(db, 'news_feed', postId);
-      const isLiked = currentLikes?.includes(user.email);
+      const isLiked = currentLikes?.includes(user.id);
+      const newLikes = isLiked 
+        ? currentLikes.filter(id => id !== user.id)
+        : [...(currentLikes || []), user.id];
       
       await updateDoc(postRef, {
-        likes: isLiked ? arrayRemove(user.email) : arrayUnion(user.email)
+        likes: newLikes
       });
     } catch (e) {
       console.error("Failed to toggle like", e);
@@ -291,9 +294,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
                     <div className="flex items-center space-x-8 mt-10 pt-6 border-t border-white/5">
                        <button 
                          onClick={() => handleLike(post.id, post.likes)}
-                         className={`flex items-center space-x-2 transition-colors group ${post.likes?.includes(user.email) ? 'text-brand-red' : 'text-slate-500 hover:text-brand-red'}`}
+                         className={`flex items-center space-x-2 transition-colors group ${post.likes?.includes(user.id) ? 'text-brand-red' : 'text-slate-500 hover:text-brand-red'}`}
                        >
-                          <Heart className={`h-5 w-5 ${post.likes?.includes(user.email) ? 'fill-brand-red' : 'group-hover:fill-brand-red'}`} />
+                          <Heart className={`h-5 w-5 ${post.likes?.includes(user.id) ? 'fill-brand-red' : 'group-hover:fill-brand-red'}`} />
                           <span className="text-[10px] font-black uppercase tracking-widest">{post.likes?.length || 0}</span>
                        </button>
                        <button className="flex items-center space-x-2 text-slate-500 hover:text-blue-500 transition-colors">

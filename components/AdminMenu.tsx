@@ -734,17 +734,17 @@ const AdminMenu: React.FC<AdminMenuProps> = ({ user }) => {
                         <div className="relative z-10">
                             <h4 className="text-3xl font-black text-white uppercase tracking-tight mb-2">Global Pulse</h4>
                             <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest max-w-[200px] mx-auto leading-relaxed italic">
-                                Facility intelligence synchronized. Current neural throughput at 82% capacity.
+                                Facility intelligence synchronized. Current neural throughput at {Math.min(99, 40 + userList.length * 5)}% capacity based on {userList.length} authorized nodes.
                             </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4 w-full relative z-10">
                              <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5">
-                                <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mb-2">AUTH_BATCH</p>
-                                <p className="text-3xl font-black text-emerald-500 tabular-nums">2.1k</p>
+                                <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mb-2">AUTH_NODES</p>
+                                <p className="text-3xl font-black text-emerald-500 tabular-nums">{userList.length}</p>
                              </div>
                              <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5">
-                                <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mb-2">LOG_DELTA</p>
-                                <p className="text-3xl font-black text-brand-red tabular-nums">+04</p>
+                                <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mb-2">LOG_COUNT</p>
+                                <p className="text-3xl font-black text-brand-red tabular-nums">{auditLogs.length}</p>
                              </div>
                         </div>
                         <button className="w-full py-6 bg-white/5 hover:bg-brand-red text-white font-black text-[10px] uppercase tracking-[0.4em] rounded-[2rem] border border-white/10 transition-all">

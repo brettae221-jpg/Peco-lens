@@ -159,7 +159,7 @@ const TrainingMode: React.FC<TrainingModeProps> = ({ user }) => {
             await addDoc(collection(db, 'test_results'), resultData);
 
             // Post to feed
-            await addDoc(collection(db, 'newsfeed'), {
+            await addDoc(collection(db, 'news_feed'), {
                 userId: user.id || 'unknown',
                 userName: user.name || user.username || 'System Student',
                 userEmail: user.email,

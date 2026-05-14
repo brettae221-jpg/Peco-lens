@@ -15,21 +15,19 @@ import {
   Activity,
   Award
 } from 'lucide-react';
-import { collection, query, orderBy, limit, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, limit, onSnapshot, addDoc, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { User } from '../types';
 
 interface FeedItem {
   id: string;
-  type: 'announcement' | 'repair' | 'achievement' | 'alert';
-  author: string;
-  authorEmail: string;
-  content: string;
+  type: string;
+  userName: string;
+  userEmail: string;
+  textContent: string;
   timestamp: any;
-  likes: number;
-  comments: number;
-  line?: string;
-  tags?: string[];
+  likes: string[];
+  metadata?: any;
 }
 
 interface NewsFeedProps {
@@ -45,7 +43,7 @@ const NewsFeed: React.FC<NewsFeedProps> = ({ user }) => {
     const q = query(
       collection(db, 'news_feed'), 
       orderBy('timestamp', 'desc'), 
-      limit(20)
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -64,13 +62,13 @@ const NewsFeed: React.FC<NewsFeedProps> = ({ user }) => {
     setIsPosting(true);
     try {
       await addDoc(collection(db, 'news_feed'), {
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name || user.username || 'Facility Member',
         type: 'announcement',
-        author: user.name || user.username || 'Facility Member',
-        authorEmail: user.email,
-        content: newPost,
+        textContent: newPost,
         timestamp: serverTimestamp(),
-        likes: 0,
-        comments: 0
+        likes: []
       });
       setNewPost('');
     } catch (e) {
@@ -158,7 +156,7 @@ const NewsFeed: React.FC<NewsFeedProps> = ({ user }) => {
                      <Megaphone className="h-7 w-7" />}
                   </div>
                   <div>
-                    <h4 className="text-xl font-black text-white uppercase tracking-tight leading-tight">{item.author}</h4>
+                    <h4 className="text-xl font-black text-white uppercase tracking-tight leading-tight">{item.userName || 'Facility Member'}</h4>
                     <div className="flex items-center space-x-3 mt-1">
                       <span className="text-[10px] font-black text-brand-red uppercase tracking-widest">{item.type}</span>
                       <span className="h-1 w-1 bg-slate-800 rounded-full" />
@@ -173,25 +171,33 @@ const NewsFeed: React.FC<NewsFeedProps> = ({ user }) => {
 
               <div className="pl-18">
                 <p className="text-slate-300 text-lg font-medium leading-relaxed italic">
-                  "{item.content}"
+                  "{item.textContent}"
                 </p>
                 
-                {item.line && (
+                {item.metadata?.courseTitle && (
                   <div className="mt-4 flex items-center space-x-3">
                     <span className="px-4 py-1.5 bg-slate-900 border border-white/10 rounded-full text-[9px] font-black text-brand-red uppercase tracking-widest">
-                       UNIT: {item.line}
+                       COURSE: {item.metadata.courseTitle}
                     </span>
                   </div>
                 )}
 
                 <div className="mt-8 pt-6 border-t border-white/5 flex items-center space-x-8">
-                  <button className="flex items-center space-x-2 text-slate-600 hover:text-emerald-500 transition-colors">
-                    <ThumbsUp className="h-5 w-5" />
-                    <span className="text-[10px] font-black">{item.likes}</span>
+                  <button 
+                    onClick={async () => {
+                      const newLikes = item.likes?.includes(user.id) 
+                        ? item.likes.filter(id => id !== user.id)
+                        : [...(item.likes || []), user.id];
+                      await updateDoc(doc(db, 'news_feed', item.id), { likes: newLikes });
+                    }}
+                    className={`flex items-center space-x-2 transition-colors ${item.likes?.includes(user.id) ? 'text-emerald-500' : 'text-slate-600 hover:text-emerald-500'}`}
+                  >
+                    <ThumbsUp className={`h-5 w-5 ${item.likes?.includes(user.id) ? 'fill-emerald-500' : ''}`} />
+                    <span className="text-[10px] font-black">{item.likes?.length || 0}</span>
                   </button>
                   <button className="flex items-center space-x-2 text-slate-600 hover:text-brand-red transition-colors">
                     <MessageSquare className="h-5 w-5" />
-                    <span className="text-[10px] font-black">{item.comments}</span>
+                    <span className="text-[10px] font-black underline uppercase tracking-tighter">Neural Link</span>
                   </button>
                   <button className="flex items-center space-x-2 text-slate-600 hover:text-blue-500 transition-colors">
                     <Share2 className="h-5 w-5" />

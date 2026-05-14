@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Home, Camera, Wrench, MessageSquare, Settings } from 'lucide-react';
 import * as LucideIcons from 'lucide-react';
 import { AppMode, User, ModuleConfig } from '../types';
-import { getModules } from '../services/moduleService';
+import { subscribeToModules } from '../services/moduleService';
 
 interface BottomNavProps {
   activeMode: AppMode;
@@ -15,11 +15,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeMode, onNavigate, user }) =
   const [modules, setModules] = useState<ModuleConfig[]>([]);
 
   useEffect(() => {
-    const load = async () => {
-        const mods = await getModules();
-        setModules(mods.filter(m => m.visible));
-    };
-    load();
+    return subscribeToModules((mods) => {
+      setModules(mods.filter(m => m.visible));
+    });
   }, []);
 
   // Map icon names to Lucide components
@@ -69,6 +67,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeMode, onNavigate, user }) =
           return (
             <button
               key={tab.id}
+              id={`nav-${tab.id}`}
               onClick={() => onNavigate(tab.id as AppMode)}
               className={`flex flex-col items-center space-y-3 transition-all shrink-0 min-w-[72px] ${
                 isActive ? 'text-brand-red scale-110' : 'text-slate-600 hover:text-white'

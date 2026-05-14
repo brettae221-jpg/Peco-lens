@@ -108,71 +108,114 @@ const Builder: React.FC = () => {
             ))}
           </div>
 
-          <div className="flex-1 p-10 overflow-y-auto no-scrollbar pb-32">
-             <div className="bg-white/5 border border-white/5 rounded-[3rem] p-12 border-l-4 border-l-yellow-500 mb-12 relative overflow-hidden">
-                 <AnimatePresence>
-                    {showSuccess && (
-                        <motion.div 
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="absolute top-0 inset-x-0 py-4 bg-emerald-500 text-slate-950 text-center font-black text-[10px] uppercase tracking-[0.4em] z-20"
-                        >
-                            Module Successfully Integrated to System Ribbon
-                        </motion.div>
-                    )}
-                 </AnimatePresence>
-                 <div className="flex items-center space-x-6 mb-10 text-white">
-                    <Zap className={`h-10 w-10 text-yellow-500 ${generating ? 'animate-pulse' : ''}`} />
-                    <div>
-                        <h4 className="text-2xl font-black uppercase tracking-tight">AI ARCHITECT</h4>
-                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Natural Language Logic Expansion</p>
-                    </div>
-                 </div>
-                 
-                 <div className="bg-black/40 rounded-[2rem] p-8 border border-white/5 mb-10">
-                    <p className="text-slate-400 font-medium leading-relaxed italic">
-                        {generating ? '"Initializing neural weights... identifying facility bottlenecks... building menu tree..."' : '"E.g.: Generate a 10-step module for Grasselli Blade Alignment using thermal data markers."'}
-                    </p>
-                 </div>
+                        {activeSubView === 'New Module' ? (
+                            <div className="space-y-12">
+                                <div className="bg-white/5 border border-white/5 rounded-[3rem] p-12 border-l-4 border-l-yellow-500 relative overflow-hidden">
+                                     <AnimatePresence>
+                                        {showSuccess && (
+                                            <motion.div 
+                                                initial={{ opacity: 0, y: -20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: -20 }}
+                                                className="absolute top-0 inset-x-0 py-4 bg-emerald-500 text-slate-950 text-center font-black text-[10px] uppercase tracking-[0.4em] z-20"
+                                            >
+                                                Module Successfully Integrated to System Ribbon
+                                            </motion.div>
+                                        )}
+                                     </AnimatePresence>
+                                     <div className="flex items-center space-x-6 mb-10 text-white">
+                                        <Zap className={`h-10 w-10 text-yellow-500 ${generating ? 'animate-pulse' : ''}`} />
+                                        <div>
+                                            <h4 className="text-2xl font-black uppercase tracking-tight">AI ARCHITECT</h4>
+                                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Natural Language Logic Expansion</p>
+                                        </div>
+                                     </div>
+                                     
+                                     <div className="bg-black/40 rounded-[2rem] p-8 border border-white/5 mb-10">
+                                        <p className="text-slate-400 font-medium leading-relaxed italic">
+                                            {generating ? '"Initializing neural weights... identifying facility bottlenecks... building menu tree..."' : '"E.g.: Generate a 10-step module for Grasselli Blade Alignment using thermal data markers."'}
+                                        </p>
+                                     </div>
 
-                 <div className="flex space-x-4">
-                    <input 
-                      type="text" 
-                      value={directive}
-                      onChange={e => setDirective(e.target.value)}
-                      disabled={generating}
-                      placeholder="Input Directive..."
-                      className="flex-1 h-20 bg-white/5 rounded-[2rem] border border-white/5 px-10 text-white font-black uppercase tracking-widest outline-none focus:border-yellow-500/50 transition-all disabled:opacity-50"
-                    />
-                    <button 
-                      onClick={handleGenerate}
-                      disabled={!directive || generating}
-                      className="h-20 px-12 bg-yellow-500 text-slate-950 font-black rounded-[2rem] hover:scale-105 active:scale-95 transition-all shadow-2xl disabled:opacity-50"
-                    >
-                       {generating ? 'PROFILING...' : 'GENERATE'}
-                    </button>
-                 </div>
-             </div>
+                                     <div className="flex space-x-4">
+                                        <input 
+                                          type="text" 
+                                          value={directive}
+                                          onChange={e => setDirective(e.target.value)}
+                                          disabled={generating}
+                                          placeholder="Input Directive..."
+                                          className="flex-1 h-20 bg-white/5 rounded-[2rem] border border-white/5 px-10 text-white font-black uppercase tracking-widest outline-none focus:border-yellow-500/50 transition-all disabled:opacity-50"
+                                        />
+                                        <button 
+                                          onClick={handleGenerate}
+                                          disabled={!directive || generating}
+                                          className="h-20 px-12 bg-yellow-500 text-slate-950 font-black rounded-[2rem] hover:scale-105 active:scale-95 transition-all shadow-2xl disabled:opacity-50"
+                                        >
+                                           {generating ? 'PROFILING...' : 'GENERATE'}
+                                        </button>
+                                     </div>
+                                </div>
 
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {modules.map((m, idx) => (
-                  <motion.div 
-                    key={m.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="p-8 bg-white/2 rounded-[2.5rem] border border-white/5 hover:bg-white/5 transition-all cursor-pointer group"
-                  >
-                    <div className="h-12 w-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                       <Layout className={`h-6 w-6 ${m.date === 'JUST NOW' ? 'text-yellow-500' : 'text-slate-500'}`} />
-                    </div>
-                    <h5 className="font-black text-white uppercase mb-2 truncate">{m.name}</h5>
-                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{m.date}</p>
-                  </motion.div>
-                ))}
-             </div>
-          </div>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                                    {modules.map((m, idx) => (
+                                      <motion.div 
+                                        key={m.id}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        className="p-8 bg-white/2 rounded-[2.5rem] border border-white/5 hover:bg-white/5 transition-all cursor-pointer group"
+                                      >
+                                        <div className="h-12 w-12 rounded-2xl bg-slate-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                                           <Layout className={`h-6 w-6 ${m.date === 'JUST NOW' ? 'text-yellow-500' : 'text-slate-500'}`} />
+                                        </div>
+                                        <h5 className="font-black text-white uppercase mb-2 truncate">{m.name}</h5>
+                                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">{m.date}</p>
+                                      </motion.div>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : activeSubView === 'Edit Scenario' ? (
+                            <div className="space-y-12">
+                                <div className="bg-white/5 border border-white/5 rounded-[3rem] p-12">
+                                    <div className="flex items-center space-x-6 mb-12">
+                                        <div className="h-20 w-20 bg-blue-500/20 rounded-[2rem] flex items-center justify-center text-blue-500 border border-blue-500/20 shadow-2xl">
+                                            <RefreshCw className="h-10 w-10" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-3xl font-black text-white uppercase tracking-tighter">MegaJet Interface Bridge</h3>
+                                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em] mt-2">Connect to Industrial Hardware</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                        <div className="space-y-6">
+                                            <div>
+                                                <label className="text-[8px] font-black text-slate-500 uppercase tracking-[0.4em] mb-4 block">MegaJet IP Address</label>
+                                                <input placeholder="192.168.1.XXX" className="w-full h-16 bg-white/5 border border-white/10 rounded-2xl px-8 text-white font-black tracking-widest outline-none focus:border-blue-500 transition-all" />
+                                            </div>
+                                            <div>
+                                                <label className="text-[8px] font-black text-slate-500 uppercase tracking-[0.4em] mb-4 block">Auth Protocol</label>
+                                                <select className="w-full h-16 bg-white/5 border border-white/10 rounded-2xl px-8 text-white font-black tracking-widest outline-none focus:border-blue-500 transition-all appearance-none cursor-pointer">
+                                                    <option>TLS_V3_ENCRYPTED</option>
+                                                    <option>LEGACY_WAGO_IO</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-6">
+                                            <div className="p-8 bg-blue-500/5 border border-blue-500/20 rounded-[2.5rem]">
+                                                <h4 className="text-white font-black text-sm uppercase tracking-tight mb-4">Connection Logic</h4>
+                                                <p className="text-slate-500 text-xs leading-relaxed italic">
+                                                    "Connecting to a MegaJet unit requires a valid WAGO 750/800 series controller. AI will automatically attempt to map the Modbus/TCP register once handshake is secure."
+                                                </p>
+                                            </div>
+                                            <button className="w-full py-6 bg-blue-600 text-white font-black text-[10px] uppercase tracking-[0.3em] rounded-2xl shadow-2xl shadow-blue-500/20 active:scale-95 transition-all">
+                                                Test Handshake
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : null}
         </div>
       );
     }

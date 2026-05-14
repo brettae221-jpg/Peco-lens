@@ -35,7 +35,7 @@ const menuItems: MenuItem[] = [
   
   // Operator (Now also visible to Admins)
   { view: 'break-tracker', label: 'Break Tracker', icon: <ClockIcon className="h-5 w-5" />, roles: ['Admin', 'Operator'], group: 'operator' },
-  { view: 'scenario-newsfeed', label: 'Scenario Newsfeed', icon: <NewspaperIcon className="h-5 w-5" />, roles: ['Admin', 'Operator'], group: 'operator' },
+  { view: 'scenario-news-feed', label: 'Scenario Newsfeed', icon: <NewspaperIcon className="h-5 w-5" />, roles: ['Admin', 'Operator'], group: 'operator' },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ user, activeView, setActiveView }) => {

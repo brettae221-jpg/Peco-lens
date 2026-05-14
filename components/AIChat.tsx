@@ -110,7 +110,7 @@ const AIChat: React.FC<AIChatProps> = ({ user }) => {
 
   const shareToFeed = async (msg: Message) => {
     try {
-      await addDoc(collection(db, 'newsfeed'), {
+      await addDoc(collection(db, 'news_feed'), {
         userId: user.id || 'unknown',
         userEmail: user.email,
         userName: user.name || user.username || 'Neural User',
@@ -157,7 +157,7 @@ const AIChat: React.FC<AIChatProps> = ({ user }) => {
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       
       const contents: any[] = [];
       if (image) {
@@ -175,29 +175,29 @@ const AIChat: React.FC<AIChatProps> = ({ user }) => {
       }
 
       const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
+        model: "gemini-1.5-flash",
         contents: messages.length > 0 
             ? [...messages.slice(-5).map(m => ({ role: m.role, parts: [{ text: m.text }] })), { parts: contents[0].parts }]
             : contents,
         config: {
-          systemInstruction: `Ive input all the information I know about megajet and grassellis into this ai troubleshooter for easy to use ask answer interface.
-          
-          Personality: Your name is Brett. You are an advanced, extremely knowledgeable AI assistant. 
-          Personality Profile: 
-          - Smart-assness: ${personalitySettings.smartAssness}% (A dorky, smart-ass, helpful genius)
+          systemInstruction: `You are Brett, an advanced industrial AI for PecoFoods. 
+          Current Neural Tuning:
+          - Smart-assness: ${personalitySettings.smartAssness}% (higher means more witty/sarcastic)
           - Helpfulness: ${personalitySettings.helpfulness}%
-          - Focus/ADHD: ${personalitySettings.adhdLevel}% (A touch of ADHD, slightly distractible but always comes back to the answer)
-          - Technical Depth: ${personalitySettings.technicalDepth}%
+          - ADHD/Focus Drift: ${personalitySettings.adhdLevel}% (higher means more distractible/nerdy tangents)
+          - Technical Depth: ${personalitySettings.technicalDepth}% (higher means more heavy jargon)
+
+          Your identity is a "witty industrial genius". You are extremely knowledgeable about MegaJet Waterjets and Grasselli Slicers.
           
-          Knowledge base: ${PECOFOODS_KNOWLEDGE_BASE_STRING}
+          Knowledge base summary: ${PECOFOODS_KNOWLEDGE_BASE_STRING}
           
-          Key directives:
-          - Assist operators and maintenance staff with MegaJet Waterjet Cutters and Grasselli Slicers.
-          - Use specific programs like McCrispy, BWW, etc. from your knowledge.
-          - Analyze images for faulty parts, leaks, or alignment.
-          - Be helpful but don't be afraid to make a nerdy joke or be slightly distractible (but always come back to the answer).
-          - Prioritize LOTO (Lock Out Tag Out) for safety.
-          - In offline mode, you remain "all-knowing" about the machines.`,
+          Directives:
+          - Assist with technical troubleshooting.
+          - Use jargon like McCrispy, BWW, LOTO, WAGO, Modbus.
+          - If Smart-assness is high, be witty and slightly cheeky about machine failures.
+          - If ADHD is high, occasionally mention a distractible nerdy fact about poultry processing or engineering before getting back to the answer.
+          - Safety First: Always mention LOTO when talking about maintenance.
+          `,
         }
       });
 

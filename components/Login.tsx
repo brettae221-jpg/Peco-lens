@@ -36,14 +36,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         try {
           await signInAnonymously(auth);
         } catch (authErr: any) {
-          console.error("Auth pre-check failed:", authErr);
-          if (authErr.code === 'auth/admin-restricted-operation') {
-            throw new Error('AUTH_DISABLED: Anonymous Sign-in is not enabled in your Firebase Console. Please go to Authentication -> Sign-in method and enable Anonymous Auth.');
-          }
-          if (authErr.code === 'auth/unauthorized-domain') {
-            throw new Error('DOMAIN_RESTRICTED: This domain (github.io) is not authorized in your Firebase Console. Add it under Authentication -> Settings -> Authorized Domains.');
-          }
-          // Continue anyway, it might work if rules are loose or already signed in
+          console.warn("Auth pre-check failed (Non-fatal, proceeding):", authErr);
         }
       }
 
@@ -57,7 +50,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
           try {
             const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
             const { db: fireDb } = await import('../firebase');
-            await addDoc(collection(fireDb, 'newsfeed'), {
+            await addDoc(collection(fireDb, 'news_feed'), {
               userId: user.id || 'unknown',
               userName: user.name || user.username || 'Tactical Tech',
               userEmail: user.email,
@@ -70,7 +63,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             const errInfo = {
               error: feedErr instanceof Error ? feedErr.message : String(feedErr),
               operationType: 'create',
-              path: 'newsfeed'
+              path: 'news_feed'
             };
             console.warn("Feed broadcast failed:", JSON.stringify(errInfo));
           }
@@ -121,7 +114,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
         try {
           const { addDoc, collection, serverTimestamp } = await import('firebase/firestore');
           const { db } = await import('../firebase');
-          await addDoc(collection(db, 'newsfeed'), {
+          await addDoc(collection(db, 'news_feed'), {
             userId: tempUser.id,
             userName: tempUser.name || tempUser.username || 'Tactical Tech',
             userEmail: tempUser.email,

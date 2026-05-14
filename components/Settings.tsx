@@ -38,8 +38,37 @@ interface SettingsProps {
 const Settings: React.FC<SettingsProps> = ({ user }) => {
     const [view, setView] = useState<SettingsView>('menu');
     const [activeSubView, setActiveSubView] = useState<string>('');
+    const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+    const [selectedLanguage, setSelectedLanguage] = useState('English (US)');
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [syncProgress, setSyncProgress] = useState(98);
+    const [biometrics, setBiometrics] = useState(true);
+
     const { updateAvailable, checkForUpdates, applyUpdate, checking, lastRemoteUpdate, issueRemoteUpdate } = usePWAUpdate();
     const { installPrompt, promptInstall } = useInstallPrompt();
+
+    const handleSync = () => {
+        setIsSyncing(true);
+        setSyncProgress(0);
+        const interval = setInterval(() => {
+            setSyncProgress(prev => {
+                if (prev >= 100) {
+                    clearInterval(interval);
+                    setIsSyncing(false);
+                    return 100;
+                }
+                return prev + 2;
+            });
+        }, 50);
+    };
+
+    const handleReset = () => {
+        if (window.confirm("CRITICAL: This will purge all local data. Proceed?")) {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.reload();
+        }
+    };
 
     const menuItems = [
       { id: 'profile', name: 'Profile Matrix', icon: UserIcon, color: 'bg-blue-600', submenus: ['Basic Info', 'Security', 'Role Access', 'Activity Log'] },
@@ -169,18 +198,23 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                 return (
                     <div className="space-y-6">
                         {[
-                            { name: 'Two-Factor Auth', status: 'Disabled', icon: Shield },
-                            { name: 'Biometric Lock', status: 'Active', icon: Lock },
-                            { name: 'Session Timeout', status: '30 Minutes', icon: Clock },
-                            { name: 'Encryption Key', status: 'AES-256', icon: Lock }
+                            { name: 'Two-Factor Auth', status: is2FAEnabled ? 'Active' : 'Disabled', icon: Shield, action: () => setIs2FAEnabled(!is2FAEnabled) },
+                            { name: 'Biometric Lock', status: biometrics ? 'Active' : 'Disabled', icon: Lock, action: () => setBiometrics(!biometrics) },
+                            { name: 'Session Timeout', status: '30 Minutes', icon: Lock, action: null },
+                            { name: 'Encryption Key', status: 'AES-256', icon: Lock, action: null }
                         ].map(s => (
-                            <div key={s.name} className="bg-white/5 p-6 rounded-2xl border border-white/5 flex items-center justify-between">
+                            <button 
+                                key={s.name} 
+                                onClick={() => s.action?.()}
+                                disabled={!s.action}
+                                className="w-full bg-white/5 p-6 rounded-2xl border border-white/5 flex items-center justify-between text-left hover:bg-white/10 transition-all font-sans"
+                            >
                                 <div className="flex items-center space-x-4">
-                                    <s.icon className="h-5 w-5 text-slate-500" />
+                                    <s.icon className={`h-5 w-5 ${s.status === 'Active' ? 'text-emerald-500' : 'text-slate-500'}`} />
                                     <span className="text-[10px] font-black text-white uppercase tracking-widest">{s.name}</span>
                                 </div>
                                 <span className={`text-[10px] font-black uppercase ${s.status === 'Active' || s.status.includes('Minutes') ? 'text-emerald-500' : 'text-slate-500'}`}>{s.status}</span>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 );
@@ -193,30 +227,43 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                                     <h4 className="text-white font-black uppercase tracking-tight">Facility Data Hub</h4>
                                     <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Global Neural Synchronization</p>
                                 </div>
-                                <div className="h-10 w-10 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20">
-                                    <UploadCloud className="h-5 w-5 text-blue-500" />
+                                <div className={`h-10 w-10 ${isSyncing ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-blue-500/10 border-blue-500/20'} rounded-xl flex items-center justify-center border transition-colors`}>
+                                    <UploadCloud className={`h-5 w-5 ${isSyncing ? 'text-emerald-500 animate-bounce' : 'text-blue-500'}`} />
                                 </div>
                             </div>
                             <div className="space-y-6">
                                 <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                                    <span className="text-slate-500">Sync Progress</span>
-                                    <span className="text-white">98%</span>
+                                    <span className="text-slate-500">{isSyncing ? 'Synchronizing...' : 'Last Sync: 2m ago'}</span>
+                                    <span className="text-white">{syncProgress}%</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden">
-                                     <div className="h-full bg-blue-500 w-[98%] shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                                     <div 
+                                        className={`h-full transition-all duration-300 ${isSyncing ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`} 
+                                        style={{ width: `${syncProgress}%` }} 
+                                    />
                                 </div>
                             </div>
                         </div>
-                        <button className="w-full py-5 bg-white/5 border border-white/10 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl">Force Master Re-Sync</button>
+                        <button 
+                            onClick={handleSync}
+                            disabled={isSyncing}
+                            className="w-full py-5 bg-white/5 border border-white/10 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl hover:bg-white/10 transition-all disabled:opacity-50"
+                        >
+                            {isSyncing ? 'Sync in Progress...' : 'Force Master Re-Sync'}
+                        </button>
                     </div>
                 );
             case 'Language':
                 return (
                     <div className="space-y-4">
                         {['English (US)', 'Spanish (MX)', 'Portuguese (BR)', 'French (QC)'].map(lang => (
-                            <button key={lang} className={`w-full p-6 bg-white/5 rounded-2xl border flex items-center justify-between transition-all ${lang === 'English (US)' ? 'border-brand-red bg-white/10' : 'border-white/5 opacity-50'}`}>
+                            <button 
+                                key={lang} 
+                                onClick={() => setSelectedLanguage(lang)}
+                                className={`w-full p-6 bg-white/5 rounded-2xl border flex items-center justify-between transition-all ${selectedLanguage === lang ? 'border-brand-red bg-white/10' : 'border-white/5 opacity-50'}`}
+                            >
                                 <span className="text-white font-black text-[10px] uppercase tracking-widest">{lang}</span>
-                                {lang === 'English (US)' && <CheckCircle2 className="h-4 w-4 text-brand-red" />}
+                                {selectedLanguage === lang && <CheckCircle2 className="h-4 w-4 text-brand-red" />}
                             </button>
                         ))}
                     </div>
@@ -229,9 +276,79 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                             <h4 className="text-xl font-black text-white uppercase tracking-tight mb-2">Hard Reset Terminal</h4>
                             <p className="text-slate-400 text-xs leading-relaxed max-w-xs mx-auto">This action will purge all local neural weights, saved blueprints, and cached facility data. This cannot be undone.</p>
                         </div>
-                        <button className="w-full py-6 bg-rose-500 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[2rem] shadow-2xl shadow-rose-500/20 active:scale-95 transition-all">
+                        <button 
+                            onClick={handleReset}
+                            className="w-full py-6 bg-rose-500 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[2rem] shadow-2xl shadow-rose-500/20 active:scale-95 transition-all"
+                        >
                             Initiate Purge
                         </button>
+                    </div>
+                );
+            case 'Role Access':
+                return (
+                    <div className="space-y-6">
+                        <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5">
+                            <h4 className="text-white font-black uppercase tracking-tight mb-6">Assigned Privileges</h4>
+                            <div className="space-y-3">
+                                {['Terminal Override', 'Audit Read', 'Node Provisioning', 'Direct Megajet Link'].map(p => (
+                                    <div key={p} className="flex items-center space-x-4 p-4 bg-white/5 rounded-xl">
+                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                                        <span className="text-[10px] font-black text-white uppercase tracking-widest">{p}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                );
+            case 'Activity Log':
+                return (
+                    <div className="space-y-4">
+                        {[
+                            { action: 'LOGIN_AUTH', time: '12m ago', status: 'SUCCESS' },
+                            { action: 'SYNC_HANDSHAKE', time: '45m ago', status: 'SUCCESS' },
+                            { action: 'MEGAJET_LENS_ACTIVATE', time: '1h ago', status: 'SUCCESS' },
+                            { action: 'CREDENTIAL_UPDATE', time: '5h ago', status: 'SUCCESS' }
+                        ].map((l, i) => (
+                            <div key={i} className="p-6 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between">
+                                <div>
+                                    <p className="text-[10px] font-black text-white uppercase tracking-widest">{l.action}</p>
+                                    <p className="text-[8px] font-black text-slate-600 uppercase mt-1">{l.time}</p>
+                                </div>
+                                <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">{l.status}</span>
+                            </div>
+                        ))}
+                    </div>
+                );
+            case 'Bluetooth':
+                return (
+                    <div className="space-y-6">
+                        <div className="p-8 bg-blue-500/10 border border-blue-500/20 rounded-[2.5rem] flex flex-col items-center text-center">
+                            <Smartphone className="h-12 w-12 text-blue-500 mb-4 animate-pulse" />
+                            <h4 className="text-white font-black uppercase tracking-tight">Searching for peripherals...</h4>
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-2">Ensure MegaJet Sensors are in pairing mode</p>
+                        </div>
+                    </div>
+                );
+            case 'Kernel Version':
+                return (
+                    <div className="bg-white/5 p-10 rounded-[3rem] border border-white/5">
+                        <div className="space-y-6">
+                            <div className="flex justify-between items-center py-4 border-b border-white/5">
+                                <span className="text-slate-500 text-[10px] font-black uppercase">Core Hash</span>
+                                <span className="text-white font-mono text-[10px]">0x{Math.random().toString(16).substring(2, 10).toUpperCase()}</span>
+                            </div>
+                            <div className="flex justify-between items-center py-4 border-b border-white/5">
+                                <span className="text-slate-500 text-[10px] font-black uppercase">Neural Architecture</span>
+                                <span className="text-white font-black text-[10px] uppercase">R-TRANSFORMER-V2</span>
+                            </div>
+                        </div>
+                    </div>
+                );
+            default:
+                return (
+                    <div className="flex flex-col items-center justify-center py-20 opacity-20">
+                        <SettingsIcon className="h-16 w-16 mb-4" />
+                        <p className="font-black uppercase tracking-[0.4em] text-[10px]">Module Initializing...</p>
                     </div>
                 );
         }

@@ -48,8 +48,8 @@ const PMList: React.FC<PMListProps> = ({ user }) => {
       });
 
       if (newStatus === 'Fixed') {
-        // Post to newsfeed
-        await addDoc(collection(db, 'newsfeed'), {
+        // Post to news_feed
+        await addDoc(collection(db, 'news_feed'), {
           userId: user.id || 'unknown',
           userName: user.name || user.username || 'Tactical Tech',
           userEmail: user.email,

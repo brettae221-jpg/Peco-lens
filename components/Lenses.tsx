@@ -71,32 +71,43 @@ const LensMenu: React.FC<{ onSelect: (v: LensView) => void; onBack: () => void }
         <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[120px]" />
       </div>
 
-      <div className="relative z-10 p-8 space-y-10 pb-32 max-w-7xl mx-auto">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-6">
+      <div className="relative z-10 p-10 space-y-12 pb-32 w-full">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="flex items-center space-x-8">
             <button 
               onClick={onBack}
-              className="p-5 bg-white/5 backdrop-blur-3xl rounded-[1.5rem] border border-white/10 text-white active:scale-95 transition-all shadow-2xl"
+              className="p-6 bg-white/5 backdrop-blur-3xl rounded-[2rem] border border-white/10 text-white active:scale-95 transition-all shadow-2xl group hover:bg-brand-red/20 hover:border-brand-red/30"
             >
-              <ArrowLeft className="h-7 w-7" />
+              <ArrowLeft className="h-8 w-8 group-hover:-translate-x-1 transition-transform" />
             </button>
             <div>
-              <h2 className="text-5xl font-black text-white uppercase tracking-tighter leading-none">System <span className="text-brand-red">Lenses</span></h2>
-              <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.4em] mt-3">Select an intelligence layer to project onto equipment.</p>
+              <h2 className="text-6xl font-black text-white uppercase tracking-tighter leading-none">System <span className="text-brand-red">Lenses</span></h2>
+              <div className="flex items-center space-x-4 mt-4">
+                 <div className="h-1 w-12 bg-brand-red rounded-full" />
+                 <p className="text-slate-500 font-bold text-xs uppercase tracking-[0.5em]">Neural Projection Hub</p>
+              </div>
             </div>
           </div>
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="flex items-center space-x-8 bg-white/5 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem]">
+             <div className="flex -space-x-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="h-10 w-10 rounded-full border-2 border-slate-950 bg-slate-800 flex items-center justify-center text-[10px] font-black text-white">
+                    {String.fromCharCode(65 + i)}
+                  </div>
+                ))}
+             </div>
+             <div className="h-8 w-px bg-white/10" />
              <div className="text-right">
-                <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1">Status</p>
-                <div className="flex items-center space-x-2">
-                   <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                   <span className="text-[10px] font-black text-white uppercase tracking-widest">Sensors Ready</span>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">Global Health</p>
+                <div className="flex items-center space-x-3">
+                   <span className="text-xl font-black text-white">99.8%</span>
+                   <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.8)]" />
                 </div>
              </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8 pt-10">
           {lenses.map((lens, idx) => (
             <motion.button
               key={lens.id}
@@ -144,6 +155,7 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [selectedIssue, setSelectedIssue] = useState<any>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [subtitle, setSubtitle] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const autoScanTimer = useRef<NodeJS.Timeout | null>(null);
 
@@ -191,6 +203,9 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
   }, [autoScan, isScanning]);
 
   const speak = (text: string) => {
+    setSubtitle(text);
+    setTimeout(() => setSubtitle(null), 5000);
+    
     if (isMuted) return;
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.rate = 1.1;
@@ -296,60 +311,101 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black overflow-hidden z-40">
+    <div className="fixed inset-0 bg-black overflow-hidden z-[70]">
       {/* Target/Focus Overlay */}
-      <div className="absolute inset-0 border-[2px] border-white/10 pointer-events-none z-10">
-          <div className="absolute top-4 left-4 w-12 h-12 border-t-2 border-l-2 border-brand-red/60" />
-          <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-brand-red/60" />
-          <div className="absolute bottom-32 left-4 w-12 h-12 border-b-2 border-l-2 border-brand-red/60" />
-          <div className="absolute bottom-32 right-4 w-12 h-12 border-b-2 border-r-2 border-brand-red/60" />
+      <div className="absolute inset-0 border-[2px] border-white/5 pointer-events-none z-10">
+          <div className="absolute top-10 left-10 w-24 h-24 border-t-4 border-l-4 border-brand-red/40 rounded-tl-3xl" />
+          <div className="absolute top-10 right-10 w-24 h-24 border-t-4 border-r-4 border-brand-red/40 rounded-tr-3xl" />
+          <div className="absolute bottom-40 left-10 w-24 h-24 border-b-4 border-l-4 border-brand-red/40 rounded-bl-3xl" />
+          <div className="absolute bottom-40 right-10 w-24 h-24 border-b-4 border-r-4 border-brand-red/40 rounded-br-3xl" />
       </div>
 
+      {/* Subtitles / AI Transcript */}
+      <AnimatePresence>
+        {subtitle && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute bottom-44 inset-x-8 z-[80] flex justify-center pointer-events-none"
+          >
+            <div className="bg-black/80 backdrop-blur-3xl border border-white/10 px-8 py-5 rounded-[2rem] max-w-2xl text-center shadow-2xl">
+               <p className="text-white font-medium text-lg leading-relaxed italic">"{subtitle}"</p>
+               <div className="flex items-center justify-center space-x-2 mt-3">
+                  <div className="h-1 w-8 bg-brand-red rounded-full" />
+                  <span className="text-[10px] font-black text-brand-red uppercase tracking-widest">Brett Intelligence</span>
+               </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Viewfinder Header */}
-      <div className="absolute top-0 inset-x-0 p-6 flex justify-between items-center z-50 bg-gradient-to-b from-black/80 via-black/40 to-transparent">
-        <div className="flex items-center space-x-4">
+      <div className="absolute top-0 inset-x-0 p-8 flex justify-between items-start z-50">
+        <div className="flex items-center space-x-8">
           <button 
             onClick={onClose}
-            className="p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 text-white active:scale-95 transition-all mr-2"
+            className="p-6 bg-white/10 backdrop-blur-3xl rounded-[2rem] border border-white/10 text-white active:scale-95 transition-all shadow-2xl hover:bg-white/20"
           >
-            <ArrowLeft className="h-6 w-6" />
+            <ArrowLeft className="h-8 w-8" />
           </button>
-          <div className="p-4 bg-white/5 rounded-2xl border border-white/10 text-white flex items-center justify-center">
-            <info.icon className="h-6 w-6" />
-          </div>
-          <div>
-            <h3 className="text-xl font-black text-white uppercase tracking-tighter leading-none">{info.name}</h3>
-            <div className="flex items-center space-x-2 mt-1">
-                <div className={`h-1.5 w-1.5 rounded-full bg-emerald-500 ${isScanning ? 'animate-ping' : ''}`} />
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                  {isScanning ? searchStatus : 'Uplink: Synchronized'}
-                </p>
-            </div>
+          
+          <div className="flex items-center space-x-6">
+             <div className="p-5 bg-brand-red/20 backdrop-blur-3xl rounded-3xl border border-brand-red/30 text-brand-red">
+               <info.icon className="h-8 w-8" />
+             </div>
+             <div>
+                <h3 className="text-3xl font-black text-white uppercase tracking-tighter leading-none">{info.name}</h3>
+                <div className="flex items-center space-x-3 mt-2">
+                    <div className={`h-2 w-2 rounded-full bg-emerald-500 ${isScanning ? 'animate-ping' : ''}`} />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] leading-none">
+                      {isScanning ? searchStatus : 'Uplink: Synchronized'}
+                    </p>
+                </div>
+             </div>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
-            {isScanning && (
-              <div className="flex flex-col items-end mr-4 hidden sm:flex">
-                <div className="flex space-x-1">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="h-1 w-1 bg-brand-red animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
+
+        <div className="flex items-center space-x-4">
+            <div className="hidden lg:flex flex-col items-end mr-6">
+               <p className="text-[8px] font-black text-slate-500 uppercase tracking-[0.4em] mb-2">Neural Bandwidth</p>
+               <div className="flex space-x-1">
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div 
+                      key={i}
+                      animate={{ height: isScanning ? [8, 20, 8] : 8 }}
+                      transition={{ repeat: Infinity, duration: 1, delay: i * 0.1 }}
+                      className="w-1 bg-brand-red rounded-full opacity-40 hover:opacity-100 transition-opacity"
+                    />
                   ))}
-                </div>
-                <span className="text-[7px] font-black text-brand-red uppercase tracking-widest mt-1">Processing Neural Batch</span>
+               </div>
+            </div>
+
+            {/* Neural Assistant Core (Brett Avatar) */}
+            <div className="relative group">
+              <div className={`h-20 w-20 rounded-[2rem] bg-slate-900 border border-white/10 flex items-center justify-center relative overflow-hidden transition-all duration-700 ${isScanning ? 'scale-110 shadow-[0_0_30px_rgba(239,68,68,0.4)] border-brand-red/50' : ''}`}>
+                 <div className="absolute inset-0 bg-gradient-to-br from-brand-red/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                 <motion.div 
+                   animate={{ 
+                     scale: isScanning ? [1, 1.2, 1] : 1,
+                     rotate: isScanning ? [0, 90, 0] : 0
+                   }}
+                   transition={{ repeat: Infinity, duration: 2 }}
+                   className="relative z-10"
+                 >
+                    <div className="h-10 w-10 border-4 border-brand-red rounded-xl rotate-45 flex items-center justify-center">
+                       <div className="h-4 w-4 bg-brand-red rounded-full" />
+                    </div>
+                 </motion.div>
+                 
+                 {/* Visualized "Brain Waves" */}
+                 {isScanning && (
+                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-full h-full border-2 border-brand-red/20 rounded-full animate-ping" />
+                   </div>
+                 )}
               </div>
-            )}
-            <button 
-                onClick={() => setIsMuted(!isMuted)}
-                className={`p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 ${isMuted ? 'text-slate-500' : 'text-emerald-500'} active:scale-95 transition-all`}
-            >
-                {isMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-            </button>
-            <button 
-                onClick={() => setAutoScan(!autoScan)}
-                className={`p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 ${autoScan ? 'text-brand-red' : 'text-slate-500'} active:scale-95 transition-all`}
-            >
-                <RefreshCw className={`h-5 w-5 ${autoScan ? 'animate-spin-slow' : ''}`} />
-            </button>
+            </div>
         </div>
       </div>
 
