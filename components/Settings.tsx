@@ -165,11 +165,73 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                         </div>
                     </div>
                 );
-            default:
+            case 'Security':
                 return (
-                    <div className="flex flex-col items-center justify-center py-20 opacity-20">
-                        <Database className="h-16 w-16 mb-4" />
-                        <p className="font-black uppercase tracking-widest text-[10px]">Neural Data Node: {sub}</p>
+                    <div className="space-y-6">
+                        {[
+                            { name: 'Two-Factor Auth', status: 'Disabled', icon: Shield },
+                            { name: 'Biometric Lock', status: 'Active', icon: Lock },
+                            { name: 'Session Timeout', status: '30 Minutes', icon: Clock },
+                            { name: 'Encryption Key', status: 'AES-256', icon: Lock }
+                        ].map(s => (
+                            <div key={s.name} className="bg-white/5 p-6 rounded-2xl border border-white/5 flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                    <s.icon className="h-5 w-5 text-slate-500" />
+                                    <span className="text-[10px] font-black text-white uppercase tracking-widest">{s.name}</span>
+                                </div>
+                                <span className={`text-[10px] font-black uppercase ${s.status === 'Active' || s.status.includes('Minutes') ? 'text-emerald-500' : 'text-slate-500'}`}>{s.status}</span>
+                            </div>
+                        ))}
+                    </div>
+                );
+            case 'Cloud Sync':
+                return (
+                    <div className="space-y-6">
+                        <div className="p-8 bg-white/5 border border-white/5 rounded-[2.5rem]">
+                            <div className="flex items-center justify-between mb-8">
+                                <div>
+                                    <h4 className="text-white font-black uppercase tracking-tight">Facility Data Hub</h4>
+                                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-1">Global Neural Synchronization</p>
+                                </div>
+                                <div className="h-10 w-10 bg-blue-500/10 rounded-xl flex items-center justify-center border border-blue-500/20">
+                                    <UploadCloud className="h-5 w-5 text-blue-500" />
+                                </div>
+                            </div>
+                            <div className="space-y-6">
+                                <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                                    <span className="text-slate-500">Sync Progress</span>
+                                    <span className="text-white">98%</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden">
+                                     <div className="h-full bg-blue-500 w-[98%] shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                                </div>
+                            </div>
+                        </div>
+                        <button className="w-full py-5 bg-white/5 border border-white/10 text-white font-black text-[10px] uppercase tracking-widest rounded-2xl">Force Master Re-Sync</button>
+                    </div>
+                );
+            case 'Language':
+                return (
+                    <div className="space-y-4">
+                        {['English (US)', 'Spanish (MX)', 'Portuguese (BR)', 'French (QC)'].map(lang => (
+                            <button key={lang} className={`w-full p-6 bg-white/5 rounded-2xl border flex items-center justify-between transition-all ${lang === 'English (US)' ? 'border-brand-red bg-white/10' : 'border-white/5 opacity-50'}`}>
+                                <span className="text-white font-black text-[10px] uppercase tracking-widest">{lang}</span>
+                                {lang === 'English (US)' && <CheckCircle2 className="h-4 w-4 text-brand-red" />}
+                            </button>
+                        ))}
+                    </div>
+                );
+            case 'Reset Factory':
+                return (
+                    <div className="p-10 bg-rose-500/10 border border-rose-500/20 rounded-[3rem] text-center space-y-6">
+                        <XCircle className="h-12 w-12 text-rose-500 mx-auto" />
+                        <div>
+                            <h4 className="text-xl font-black text-white uppercase tracking-tight mb-2">Hard Reset Terminal</h4>
+                            <p className="text-slate-400 text-xs leading-relaxed max-w-xs mx-auto">This action will purge all local neural weights, saved blueprints, and cached facility data. This cannot be undone.</p>
+                        </div>
+                        <button className="w-full py-6 bg-rose-500 text-white font-black text-xs uppercase tracking-[0.3em] rounded-[2rem] shadow-2xl shadow-rose-500/20 active:scale-95 transition-all">
+                            Initiate Purge
+                        </button>
                     </div>
                 );
         }

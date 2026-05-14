@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Activity, 
   History, 
-  Map, 
+  Map as MapIcon, 
   ArrowLeft,
   ChevronRight,
   Plus,
@@ -24,7 +24,7 @@ import {
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, query, onSnapshot, updateDoc, doc, setDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 
-type MachinesView = 'menu' | 'active' | 'history' | 'health';
+type MachinesView = 'menu' | 'active' | 'history' | 'health' | 'terminal';
 
 interface MachineData {
   id: string;
@@ -33,10 +33,14 @@ interface MachineData {
   health: number;
   runtime: number;
   sync: string;
+  ip?: string;
+  load?: number;
+  vibrancy?: number;
 }
 
 const Machines: React.FC = () => {
     const [view, setView] = useState<MachinesView>('menu');
+    const [selectedMachine, setSelectedMachine] = useState<MachineData | null>(null);
     const [activeSubView, setActiveSubView] = useState<string>('Live Telemetry');
     const [machines, setMachines] = useState<MachineData[]>([]);
     const [uploading, setUploading] = useState(false);
@@ -48,7 +52,7 @@ const Machines: React.FC = () => {
     const menuItems = [
       { id: 'active', name: 'Active Units', icon: Activity, color: 'bg-emerald-600', submenus: ['Live Telemetry', 'Manual Control', 'Sync Status', 'Diagnostics'] },
       { id: 'history', name: 'History Records', icon: History, color: 'bg-blue-600', submenus: ['Fault Log', 'Runtime History', 'Part Replacement', 'Export CSV'] },
-      { id: 'health', name: 'Health Matrix', icon: Map, color: 'bg-indigo-600', submenus: ['Facility View', 'Heat Map', 'Critical Nodes', 'Optimization'] },
+      { id: 'health', name: 'Health Matrix', icon: MapIcon, color: 'bg-indigo-600', submenus: ['Facility View', 'Heat Map', 'Critical Nodes', 'Optimization'] },
     ];
 
     useEffect(() => {
@@ -56,12 +60,15 @@ const Machines: React.FC = () => {
         const unsubscribe = onSnapshot(q, (snapshot) => {
           if (snapshot.empty) {
             const initialMachines: MachineData[] = [1, 2, 3, 4, 5, 6].map(i => ({
-              id: `L0${i}`,
-              name: `Production Node 0${i}`,
+              id: `MJ-0${i}`,
+              name: i < 4 ? `MegaJet Hydro-0${i}` : `Grasselli Node 0${i}`,
               status: 'Operational',
               health: 99.4 - (i * 0.1),
               runtime: 442 + i,
-              sync: 'REAL'
+              sync: 'REAL',
+              ip: `192.168.1.${100 + i}`,
+              load: 82 + (i * 2),
+              vibrancy: 0.02 + (i * 0.01)
             }));
             initialMachines.forEach(m => {
                setDoc(doc(db, 'machines', m.id), m);
@@ -123,12 +130,13 @@ const Machines: React.FC = () => {
                 status: 'Operational',
                 health: 100,
                 runtime: 0,
-                sync: 'REAL'
+                sync: 'REAL',
+                ip: `10.0.0.${Math.floor(Math.random() * 254)}`
             };
             await setDoc(doc(db, 'machines', newNode.id), newNode);
             
-            // Log to feed
-            await addDoc(collection(db, 'newsfeed'), {
+            // Log to feed using correct collection name 'news_feed'
+            await addDoc(collection(db, 'news_feed'), {
                 userName: 'Neural Admin',
                 type: 'machine_added',
                 textContent: `Provisioned new industrial node: ${wagoName}`,
@@ -255,9 +263,9 @@ const Machines: React.FC = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-24">
                         {machines.map(m => (
-                            <div key={m.id} className="p-8 bg-white/2 border border-white/5 rounded-[2.5rem] flex items-center justify-between group hover:bg-white/5 transition-all">
+                             <div key={m.id} className="p-8 bg-white/2 border border-white/5 rounded-[2.5rem] flex items-center justify-between group hover:bg-white/5 transition-all">
                                 <div className="flex items-center space-x-6">
-                                    <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-white font-black text-sm ${m.status === 'Operational' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-brand-red/20 text-brand-red'}`}>
+                                    <div className={`h-16 w-16 rounded-2xl flex items-center justify-center text-white font-black text-xs ${m.status === 'Operational' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-brand-red/20 text-brand-red'}`}>
                                         {m.id}
                                     </div>
                                     <div>
@@ -265,6 +273,12 @@ const Machines: React.FC = () => {
                                         <p className="text-slate-500 text-[8px] font-black uppercase tracking-widest mt-1">Health: {m.health}% • {m.runtime}H</p>
                                     </div>
                                 </div>
+                                <button 
+                                    onClick={() => { setSelectedMachine(m); setView('terminal'); }}
+                                    className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-slate-500 group-hover:text-white font-black text-[8px] uppercase tracking-widest hover:bg-white/10 transition-all opacity-0 group-hover:opacity-100"
+                                >
+                                    Connect
+                                </button>
                                 <ChevronRight className="h-5 w-5 text-slate-700 group-hover:text-white transition-colors" />
                             </div>
                         ))}
@@ -273,6 +287,112 @@ const Machines: React.FC = () => {
             </div>
         );
     };
+
+    const renderTerminal = () => {
+        if (!selectedMachine) return null;
+        return (
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="h-full flex flex-col space-y-8"
+            >
+                <div className="flex items-center justify-between pb-8 border-b border-white/5">
+                    <div className="flex items-center space-x-6">
+                        <button onClick={() => setView('active')} className="p-4 bg-white/5 rounded-full text-white border border-white/5 hover:bg-white/10 transition-all">
+                            <ArrowLeft className="h-6 w-6" />
+                        </button>
+                        <div>
+                             <h3 className="text-4xl font-black text-white uppercase tracking-tighter">{selectedMachine.name}</h3>
+                             <p className="text-emerald-500 text-[10px] font-black uppercase tracking-[0.4em]">Handshake Active: {selectedMachine.ip}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                             <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mb-1">Port Status</p>
+                             <p className="text-white font-black uppercase text-xs tracking-widest">TLS_ENCRYPTED</p>
+                        </div>
+                        <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse" />
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <div className="lg:col-span-2 space-y-8">
+                        <div className="bg-slate-900 border border-white/10 rounded-[3rem] p-10 font-mono text-[11px] leading-relaxed relative overflow-hidden h-[400px]">
+                            <div className="absolute top-0 inset-x-0 h-1 bg-brand-red opacity-20" />
+                            <div className="space-y-1 text-slate-400">
+                                <p className="text-emerald-500 font-black mb-4">{"[SYS_READY] Initializing MJ Controller v4.2.1..."}</p>
+                                <p>{"[WAGO_SYNC] Handshaking with IP " + selectedMachine.ip + "..."}</p>
+                                <p>{"[WAGO_SYNC] Handshake SUCCESS."}</p>
+                                <p>{"[AUTH] Node verified. Credentials accepted."}</p>
+                                <p className="text-blue-400 overflow-hidden text-ellipsis italic">{"[DEBUG] Receiving telemetry packet (842kb)..."}</p>
+                                <p>{"[TELEMETRY] Nozzle Pressure: 42,500 PSI"}</p>
+                                <p>{"[TELEMETRY] Cutter Speed: 1.2s/cycle"}</p>
+                                <p>{"[TELEMETRY] Belt Load: " + (selectedMachine.load || 85) + "%"}</p>
+                                <p className="mt-6 opacity-30">{"------------------------------------------------------"}</p>
+                                {[...Array(10)].map((_, i) => (
+                                    <p key={i} className="opacity-20 animate-pulse">{"HEX_STREAM_A" + i + ": 0x" + Math.random().toString(16).substring(2, 20).toUpperCase()}</p>
+                                ))}
+                                <motion.p 
+                                    animate={{ opacity: [1, 0] }}
+                                    transition={{ repeat: Infinity, duration: 0.8 }}
+                                    className="text-white font-black"
+                                >
+                                    {"_"}
+                                </motion.p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-6">
+                            <button className="py-6 bg-white/5 border border-white/10 rounded-2xl text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all">Flush Buffer</button>
+                            <button className="py-6 bg-white/5 border border-white/10 rounded-2xl text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all">Emergency Halt</button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-8">
+                        <div className="bg-white/5 border border-white/5 rounded-[4rem] p-10 space-y-8 relative overflow-hidden group">
+                             <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform">
+                                <ShieldCheck className="h-20 w-20 text-white" />
+                             </div>
+                             <div>
+                                <h4 className="text-xl font-black text-white uppercase tracking-tight">Security Check</h4>
+                                <p className="text-slate-500 font-bold text-[8px] uppercase tracking-widest mt-1">SSL Certificate valid</p>
+                             </div>
+                             <div className="space-y-6">
+                                <div>
+                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest mb-2">
+                                        <span className="text-slate-600">Integrity</span>
+                                        <span className="text-emerald-500">99.9%</span>
+                                    </div>
+                                    <div className="h-1 w-full bg-white/5 rounded-full">
+                                        <div className="h-full bg-emerald-500 w-[99.9%]" />
+                                    </div>
+                                </div>
+                                <button className="w-full py-4 bg-brand-red rounded-xl text-white font-black text-[10px] uppercase tracking-widest shadow-xl shadow-brand-red/20 active:scale-95 transition-all">Reset Sync</button>
+                             </div>
+                        </div>
+
+                        <div className="bg-white/5 border border-white/5 rounded-[4rem] p-10 flex flex-col items-center justify-center text-center space-y-4">
+                             <div className="h-24 w-24 bg-white/5 rounded-full border border-white/10 flex items-center justify-center">
+                                <Zap className="h-10 w-10 text-yellow-500 animate-pulse" />
+                             </div>
+                             <div>
+                                <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest">Active Amperage</p>
+                                <p className="text-4xl font-black text-white tabular-nums">42.2<span className="text-slate-500 text-sm">A</span></p>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+            </motion.div>
+        );
+    };
+
+    if (view === 'terminal') {
+        return (
+            <div className="h-full bg-slate-950 p-10 no-scrollbar overflow-y-auto">
+                {renderTerminal()}
+            </div>
+        );
+    }
 
     if (view !== 'menu') {
       const activeItem = menuItems.find(i => i.id === view)!;

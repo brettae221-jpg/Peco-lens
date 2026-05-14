@@ -14,8 +14,12 @@ import {
   Save,
   Trash2,
   RefreshCw,
-  Search
+  Search,
+  CheckCircle2,
+  AlertTriangle
 } from 'lucide-react';
+import { getModules, saveModules } from '../services/moduleService';
+import { ModuleConfig, AppMode } from '../types';
 
 type BuilderView = 'menu' | 'training' | 'course' | 'analytics';
 
@@ -24,6 +28,7 @@ const Builder: React.FC = () => {
     const [activeSubView, setActiveSubView] = useState<string>('New Module');
     const [directive, setDirective] = useState('');
     const [generating, setGenerating] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
     const [modules, setModules] = useState([
         { id: 'MODULE_NX_01', name: 'Grasselli Alignment', date: '2D AGO' },
         { id: 'MODULE_NX_02', name: 'Vacuum Seal Logic', date: '5D AGO' },
@@ -31,17 +36,34 @@ const Builder: React.FC = () => {
         { id: 'MODULE_NX_04', name: 'Conveyor Sync', date: '2W AGO' }
     ]);
 
-    const handleGenerate = () => {
+    const handleGenerate = async () => {
         if (!directive) return;
         setGenerating(true);
         
-        // Simulating AI menu building
-        setTimeout(() => {
-            const newId = `MODULE_AI_${Math.floor(Math.random() * 99)}`;
+        try {
+            // Fetch current modules to append
+            const currentMods = await getModules();
+            const newId = `AI_${directive.toUpperCase().replace(/\s+/g, '_').substring(0, 10)}_${Math.floor(Math.random() * 1000)}`;
+            
+            const newMod: ModuleConfig = {
+                id: newId as AppMode,
+                label: directive.length > 15 ? directive.substring(0, 12) + '...' : directive,
+                icon: 'Zap',
+                order: currentMods.length,
+                visible: true
+            };
+
+            await saveModules([...currentMods, newMod]);
+            
             setModules([{ id: newId, name: directive.length > 20 ? directive.substring(0, 17) + '...' : directive, date: 'JUST NOW' }, ...modules]);
-            setGenerating(false);
+            setShowSuccess(true);
+            setTimeout(() => setShowSuccess(false), 3000);
             setDirective('');
-        }, 2000);
+        } catch (err) {
+            console.error("BUILD_ERR", err);
+        } finally {
+            setGenerating(false);
+        }
     };
 
     const menuItems = [
@@ -87,7 +109,19 @@ const Builder: React.FC = () => {
           </div>
 
           <div className="flex-1 p-10 overflow-y-auto no-scrollbar pb-32">
-             <div className="bg-white/5 border border-white/5 rounded-[3rem] p-12 border-l-4 border-l-yellow-500 mb-12">
+             <div className="bg-white/5 border border-white/5 rounded-[3rem] p-12 border-l-4 border-l-yellow-500 mb-12 relative overflow-hidden">
+                 <AnimatePresence>
+                    {showSuccess && (
+                        <motion.div 
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="absolute top-0 inset-x-0 py-4 bg-emerald-500 text-slate-950 text-center font-black text-[10px] uppercase tracking-[0.4em] z-20"
+                        >
+                            Module Successfully Integrated to System Ribbon
+                        </motion.div>
+                    )}
+                 </AnimatePresence>
                  <div className="flex items-center space-x-6 mb-10 text-white">
                     <Zap className={`h-10 w-10 text-yellow-500 ${generating ? 'animate-pulse' : ''}`} />
                     <div>
