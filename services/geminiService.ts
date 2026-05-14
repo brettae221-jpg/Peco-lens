@@ -94,7 +94,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
 
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-1.5-flash',
             contents: contents,
             config: {
                 systemInstruction: systemInstruction,
@@ -154,7 +154,7 @@ export const getRecoverySteps = async (issue: string): Promise<RecoveryData> => 
         throw new Error("Recovery intelligence requires an active uplink for safety verification. Check cached protocols or manuals.");
     }
 
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-1.5-flash';
     const systemInstruction = `You are a master maintenance engineer for PecoFoods, specializing in poultry processing equipment. Your knowledge base is provided below. Analyze the user's issue and provide a structured recovery plan in JSON format.
 --- KNOWLEDGE BASE START (JSON format) ---
 ${PECOFOODS_KNOWLEDGE_BASE_STRING}
@@ -211,7 +211,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
 
 // FIX: Added missing continueConversation function.
 export const continueConversation = async (history: ChatMessage[], newMessage: string): Promise<string> => {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-1.5-flash';
     const systemInstruction = `You are a helpful AI assistant for PecoFoods, specialized in training on the Megajet and Grassilli systems for poultry products. Your knowledge is based on the provided knowledge base. Answer questions clearly and help the user learn.
 
 --- KNOWLEDGE BASE START (JSON format) ---
@@ -256,7 +256,7 @@ export const generateTrainingCourse = async (level: 'Beginner' | 'Moderate' | 'A
         throw new Error("Academy systems require an active uplink to generate NEW courses. Please access your saved training modules.");
     }
 
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-1.5-flash';
     const systemInstruction = `You are Brett, the PecoFoods AI. You are a dorky, smart-ass, helpful genius with a touch of ADHD. You are an expert curator of industrial curriculum. Your task is to generate a comprehensive training course about the PecoFoods Megajet Waterjet and Grasselli Slicer systems for poultry processing, using the provided knowledge base. 
     ${category ? `The course should focus specifically on: ${category}.` : 'The course should cover a random but logical mix of topics from the knowledge base.'}
     The course must be structured in the specified JSON format.
@@ -337,7 +337,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
 export const generateTrainingTest = async (course: TrainingCourse): Promise<any> => {
     if (!navigator.onLine) throw new Error("Offline: Neural testing platform unavailable.");
 
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-1.5-flash';
     const systemInstruction = `You are Brett, the PecoFoods master of exams. Your task is to generate a difficult but fair multiple-choice test based ONLY on the provided training course content. 
     You must provide 10 questions. Each question must have 4 options and 1 correct answer index (0-3).`;
 
@@ -382,7 +382,7 @@ export const calculateDensitySetting = async (
     averageThickness: number,
     beltSpeed: number
 ): Promise<{ densitySetting: number; explanation: string; }> => {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-1.5-flash';
     const systemInstruction = `You are a Megajet calibration expert specializing in poultry processing. Your knowledge is based on the provided PecoFoods knowledge base. Your sole purpose is to calculate the precise HMI density setting. Analyze the user's inputs and the 'density-calculation-logic' from the knowledge base to determine the exact density setting required. You MUST return a precise number, not a percentage or a range.
 
 --- KNOWLEDGE BASE START (JSON format) ---
@@ -429,7 +429,7 @@ Use the logic defined in the knowledge base to provide the exact density setting
 };
 
 export const createLogEntryFromChat = async (userQuery: string, aiResponse: string): Promise<Omit<LogEntry, 'id' | 'timestamp' | 'author'>> => {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-1.5-flash';
     const systemInstruction = `You are a log processing agent for a factory maintenance application. Your task is to analyze a conversation between a user and a troubleshooting AI and structure the information into a JSON log entry.
     The user is troubleshooting equipment in a poultry processing plant. The possible systems are "Megajet" and "Grassilli".
 
@@ -503,7 +503,7 @@ export const createLogEntryFromChat = async (userQuery: string, aiResponse: stri
 };
 
 export const generateTroubleshootingScenario = async (): Promise<TroubleshootingScenario> => {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-1.5-flash';
     const systemInstruction = `You are a senior maintenance engineer and training simulator for PecoFoods. Your task is to create a realistic, random-difficulty troubleshooting scenario for the Megajet, Grassilli, or Megajet Scope diagnostic systems. 
     
     For the Megajet Scope system, focus on scenarios where the operator must interpret scope waveforms (e.g., jitter, oscillations, phase slop) to identify mechanical issues like loose belts, worn V-wheels, or coupling slop.
@@ -552,7 +552,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
 };
 
 export const evaluateUserSolution = async (scenario: TroubleshootingScenario, userAnswer: string): Promise<string> => {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-1.5-flash';
     const systemInstruction = `You are an expert PecoFoods master trainer. Your goal is to provide clear, encouraging, and educational feedback on an operator's troubleshooting response. Be concise but helpful.`;
 
     const prompt = `
@@ -621,7 +621,7 @@ export const generateDiagram = async (prompt: string): Promise<string> => {
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash-image',
+            model: 'gemini-1.5-flash',
             contents: {
                 parts: [{ text: fullPrompt }]
             },
@@ -652,7 +652,7 @@ export const generateBlueprint = generateDiagram;
  * Analyzes a Megajet scope image and provides a detailed report.
  */
 export const analyzeMegajetScope = async (image: { mimeType: string, data: string }): Promise<{ analysis: string, canPinpoint: boolean, nextSteps?: string }> => {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-1.5-flash';
     const systemInstruction = `You are a Megajet Scope Analysis Expert. You specialize in interpreting the complex real-time oscilloscope-style readings from the Megajet waterjet cutting system HMI. 
     
     The scope shows multiple colored lines representing high-frequency motion and pressure data. You are specifically trained to identify mechanical signatures related to:
@@ -748,7 +748,7 @@ export const analyzeLensScan = async (
         };
     }
 
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-1.5-flash';
     const systemInstruction = `You are the PecoFoods Lens AI, an all-knowing industrial intelligence system. You have unrestricted knowledge of MegaJet waterjet systems (2-lane, 8-cutter), Grasselli NCL 4.2 slicers, thermal behavior of machinery, belt PSI dynamics, cutter arm mechanics, servomaster/servoscope data, and advanced vision systems.
 
     **FACILITY LAYOUT:**
@@ -882,7 +882,7 @@ export const generateAISummary = async (prompt: string): Promise<string> => {
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-1.5-flash',
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
                 systemInstruction: "You are the Chief Technology Officer and Master Maintenance Engineer for PecoFoods. You specialize in condensing complex technical data from poultry processing lines (6 lines, Grasselli + Megajet configuration) into high-level strategic executive summaries. Focus on yield optimization, predictive maintenance, and staff competency.",
