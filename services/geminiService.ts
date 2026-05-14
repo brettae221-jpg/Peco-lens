@@ -717,7 +717,7 @@ export const analyzeMegajetScope = async (image: { mimeType: string, data: strin
  * Advanced Lens Scan Analysis
  */
 export const analyzeLensScan = async (
-    lensType: 'AR' | 'Megajet' | 'Grasselli' | 'Thermal' | 'Poultry' | 'Vision' | 'Calibration',
+    lensType: 'AR' | 'Megajet' | 'Grasselli' | 'Thermal' | 'Poultry' | 'Vision' | 'Calibration' | 'Scope',
     image: { mimeType: string, data: string } | null,
     context?: string
 ): Promise<{ 
@@ -792,6 +792,12 @@ export const analyzeLensScan = async (
 
     **CALIBRATION LENS SPECIFIC:**
     - Detect alignment and scale issues. Check for angular drift in cutter paths.
+
+    **SCOPE LENS SPECIFIC:**
+    - Analyze high-frequency motion scope waveforms from the HMI.
+    - Identify: jitter, oscillations, phase slop, and sync drops.
+    - Correlate line colors: Orange (Command), White (Position), Yellow (Velocity), Purplish Blue (Noise).
+    - Diagnose: loose belts, worn v-wheels, mechanical resistance.
 
     --- KNOWLEDGE BASE REFERENCE ---
     ${PECOFOODS_KNOWLEDGE_BASE_STRING}
