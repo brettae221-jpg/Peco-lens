@@ -25,6 +25,7 @@ import AIChat from './components/AIChat';
 import NewsFeed from './components/NewsFeed';
 import DensityCalculator from './components/DensityCalculator';
 import MegajetScope from './components/MegajetScope';
+import ProductTour from './components/ProductTour';
 import { AppMode, User, TroubleshootingScenario, TrainingCourse, LogEntry, Blueprint, NewsPost } from './types';
 import { initialTrainingCourses } from './public/trainingCourses';
 import { initialDiagrams } from './initialDiagrams';
@@ -43,21 +44,27 @@ const initializeUsers = async () => {
     }
     try {
         await signInAnonymously(auth);
-        const usersSnap = await getDocs(collection(db, 'users'));
-        if (usersSnap.empty) {
-            console.log('INIT: Provisioning initial admin nodes...');
-            for (const user of staticUsers) {
-                const userRef = doc(collection(db, 'users'));
-                await setDoc(userRef, {
-                    ...user,
-                    firstLogin: false, // Static users don't need reset
-                    accessibleModes: Object.values(AppMode) // Admins get all by default
-                });
-            }
-        }
+        console.log('INIT: Neural link established (Anonymous)');
     } catch (error) {
-        console.error('INIT_ERROR: Failed to provision nodes', error);
+        console.warn('INIT_WARN: Anonymous node handshake failed (optional configuration)', error);
     }
+    
+    try {
+            const usersSnap = await getDocs(collection(db, 'users'));
+            if (usersSnap.empty) {
+                console.log('INIT: Provisioning initial admin nodes...');
+                for (const user of staticUsers) {
+                    const userRef = doc(collection(db, 'users'));
+                    await setDoc(userRef, {
+                        ...user,
+                        firstLogin: false,
+                        accessibleModes: Object.values(AppMode)
+                    });
+                }
+            }
+        } catch (listError) {
+            console.warn('INIT_WARN: Could not verify users list (possible rules restriction)', listError);
+        }
 };
 
 const App: React.FC = () => {
@@ -88,6 +95,7 @@ const App: React.FC = () => {
   });
 
   const [activeMode, setActiveMode] = useState<AppMode>(AppMode.Dashboard);
+  const [showTour, setShowTour] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
   
   const [trainingCourses, setTrainingCourses] = useState<TrainingCourse[]>(initialTrainingCourses);
@@ -115,6 +123,9 @@ const App: React.FC = () => {
     }
     
     setUser(loggedInUser);
+    if (loggedInUser.firstLogin) {
+      setShowTour(true);
+    }
     try {
       sessionStorage.setItem('pecofoods-user', JSON.stringify(loggedInUser));
     } catch (e) {
@@ -127,7 +138,7 @@ const App: React.FC = () => {
       case AppMode.Dashboard:
         return <Dashboard user={user as User} onNavigate={setActiveMode} />;
       case AppMode.Lenses:
-        return <Lenses onBack={() => setActiveMode(AppMode.Dashboard)} />;
+        return null; // Rendered top-level for full-screen
       case AppMode.Tools:
         return <Tools />;
       case AppMode.Maintenance:
@@ -141,13 +152,17 @@ const App: React.FC = () => {
       case AppMode.Messages:
         return <Messenger user={user as User} />;
       case AppMode.Machines:
-        return user?.role === 'Admin' ? <Machines /> : <Dashboard user={user as User} onNavigate={setActiveMode} />;
+        return user?.role === 'Admin' ? <Machines user={user as User} /> : <Dashboard user={user as User} onNavigate={setActiveMode} />;
       case AppMode.Settings:
         return <Settings user={user as User} />;
       case AppMode.AIChat:
         return <AIChat user={user as User} />;
       case AppMode.NewsFeed:
+      case AppMode.ScenarioNewsFeed:
         return <NewsFeed user={user as User} />;
+      case AppMode.ScenarioRoot:
+      case AppMode.ScenarioTraining:
+        return <TrainingMode user={user as User} />;
       case AppMode.DensityCalculator:
         return <DensityCalculator />;
       case AppMode.Scope:
@@ -157,6 +172,22 @@ const App: React.FC = () => {
       case AppMode.Builder:
         return user?.role === 'Admin' ? <Builder /> : <Dashboard user={user as User} onNavigate={setActiveMode} />;
       default:
+        // Handle dynamic modules from AI Architect
+        if ((activeMode as string).startsWith('mode-')) {
+          return (
+            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center space-y-8 animate-in fade-in duration-700">
+               <div className="h-24 w-24 bg-brand-red/10 rounded-[2rem] flex items-center justify-center border border-brand-red/20 shadow-2xl">
+                  <RefreshCcw className="h-10 w-10 text-brand-red animate-spin-slow" />
+               </div>
+               <div className="space-y-4">
+                  <h3 className="text-4xl font-black text-white uppercase tracking-tighter">Neural Module Active</h3>
+                  <p className="text-slate-500 max-w-sm mx-auto leading-relaxed italic">
+                    "Expanding facility logic for this specific directive... Initializing neural handshakes with Megajet registers."
+                  </p>
+               </div>
+            </div>
+          );
+        }
         return <Dashboard user={user as User} onNavigate={setActiveMode} />;
     }
   };
@@ -218,6 +249,27 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-slate-950 overflow-hidden font-sans antialiased text-slate-200">
       
+      {/* Product Tour */}
+      <AnimatePresence>
+        {showTour && user && (
+          <ProductTour user={user as User} onComplete={() => setShowTour(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* Global Overlays */}
+      <AnimatePresence>
+        {activeMode === AppMode.Lenses && (
+          <motion.div
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            className="fixed inset-0 z-[100] bg-black"
+          >
+            <Lenses onBack={() => setActiveMode(AppMode.Dashboard)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Messenger Indicator (Shaded out line with blue light indicator) */}
       <div className="fixed top-6 right-6 z-[60] pointer-events-none">
         <div className="flex items-center space-x-2">
@@ -264,8 +316,8 @@ const App: React.FC = () => {
         )}
       </main>
 
-      {/* Navigation only visible on home/dashboard (Main Menu) */}
-      {activeMode === AppMode.Dashboard && (
+      {/* Navigation only hidden on Lenses for maximum immersion */}
+      {activeMode !== AppMode.Lenses && (
         <BottomNav activeMode={activeMode} onNavigate={setActiveMode} user={user} />
       )}
     </div>

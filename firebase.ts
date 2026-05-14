@@ -16,30 +16,11 @@ import {
   serverTimestamp
 } from 'firebase/firestore';
 
-const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID,
-};
+import firebaseConfig from './firebase-applet-config.json';
 
-let app;
-let db: any;
-let auth: any;
-
-try {
-  if (firebaseConfig.apiKey) {
-    app = initializeApp(firebaseConfig);
-    db = getFirestore(app, import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID);
-    auth = getAuth(app);
-  } else {
-    console.error("CRITICAL: Firebase configuration missing. Ensure .env or environment variables are set.");
-  }
-} catch (e) {
-  console.error("Firebase initialization failed:", e);
-}
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app, firebaseConfig.firestoreDatabaseId); 
+const auth = getAuth(app);
 
 export { db, auth };
 export { collection, query, onSnapshot, setDoc, addDoc, orderBy, limit, Timestamp, serverTimestamp };

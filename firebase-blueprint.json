@@ -9,7 +9,11 @@
         "role": { "type": "string", "enum": ["Admin", "Operator"] },
         "name": { "type": "string" },
         "dept": { "type": "string" },
-        "appPosition": { "type": "string" }
+        "appPosition": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "firstLogin": { "type": "boolean" },
+        "accessibleModes": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["email", "role"]
     },
@@ -30,6 +34,24 @@
       },
       "required": ["timestamp", "equipmentType", "partName", "issueDescription", "loggedBy", "status"]
     },
+    "PMEntry": {
+      "title": "PM Entry",
+      "description": "Shift-based preventive maintenance logs",
+      "type": "object",
+      "properties": {
+        "source": { "type": "string", "enum": ["Belt Check", "Manual Add"] },
+        "area": { "type": "string" },
+        "subArea": { "type": "string" },
+        "description": { "type": "string" },
+        "image": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "status": { "type": "string", "enum": ["Open", "Fixed"] },
+        "assignedTo": { "type": "string" }
+      },
+      "required": ["source", "area", "description", "timestamp", "userId", "userEmail", "status"]
+    },
     "ChatMessage": {
       "title": "Chat Message",
       "description": "Real-time communication message",
@@ -38,9 +60,70 @@
         "senderEmail": { "type": "string" },
         "senderName": { "type": "string" },
         "text": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "timestamp": { "type": "string", "format": "date-time" },
+        "image": { "type": "string" },
+        "read": { "type": "boolean" }
       },
       "required": ["senderEmail", "text", "timestamp"]
+    },
+    "NewsPost": {
+      "title": "News Post",
+      "description": "Activity feed item",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "userName": { "type": "string" },
+        "type": { "type": "string" },
+        "textContent": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "likes": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["userId", "userEmail", "type", "textContent", "timestamp"]
+    },
+    "TestResult": {
+      "title": "Test Result",
+      "description": "Training test performance record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "testId": { "type": "string" },
+        "testTitle": { "type": "string" },
+        "score": { "type": "number" },
+        "totalQuestions": { "type": "number" },
+        "percentage": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "testId", "score", "timestamp"]
+    },
+    "AuditLog": {
+      "title": "Audit Log",
+      "description": "Security and activity trail",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "severity": { "type": "string", "enum": ["info", "warning", "critical"] }
+      },
+      "required": ["userId", "action", "timestamp", "severity"]
+    },
+    "GalleryAsset": {
+      "title": "Gallery Asset",
+      "description": "Media asset library item",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "type": { "type": "string", "enum": ["diagram", "model", "photo", "scan"] },
+        "url": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "category": { "type": "string" }
+      },
+      "required": ["userId", "url", "type", "timestamp"]
     },
     "Machine": {
       "title": "Machine",
@@ -70,15 +153,43 @@
   "firestore": {
     "/pm_items": {
       "schema": "PMItem",
-      "description": "A list of all detected mechanical faults for the PM shift"
+      "description": "Faulty parts logs"
+    },
+    "/pmlist": {
+      "schema": "PMEntry",
+      "description": "Shift PM logs"
     },
     "/users": {
         "schema": "User",
-        "description": "User profile data"
+        "description": "User profiles"
+    },
+    "/news_feed": {
+      "schema": "NewsPost",
+      "description": "Global activity feed"
+    },
+    "/test_results": {
+      "schema": "TestResult",
+      "description": "Training results"
+    },
+    "/audit_logs": {
+      "schema": "AuditLog",
+      "description": "Admin activity logs"
+    },
+    "/gallery_assets": {
+      "schema": "GalleryAsset",
+      "description": "User uploaded assets"
+    },
+    "/threads": {
+      "schema": "object",
+      "description": "Chat threads"
+    },
+    "/threads/{threadId}/messages": {
+      "schema": "ChatMessage",
+      "description": "Messages within a thread"
     },
     "/messages": {
       "schema": "ChatMessage",
-      "description": "Main chat messages"
+      "description": "Direct chat messages"
     },
     "/alerts": {
       "schema": "ChatMessage",

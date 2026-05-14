@@ -5,6 +5,7 @@ import { User } from './types';
 export const users: User[] = [
     // Admins
     { email: 'brettae221@gmail.com', password: 'password', role: 'Admin', name: 'Brett', dept: 'Development', appPosition: 'Owner' },
+    { email: 'brettae406@gmail.com', password: 'password', role: 'Admin', name: 'Brett', dept: 'Development', appPosition: 'Owner' },
     { email: 'bedwards@pecofoods.com', password: 'Magick08', role: 'Admin', name: 'brett', dept: 'ops trainee', appPosition: 'Admin' },
     { email: 'geno@pecofoods.com', password: '1122', role: 'Admin' },
     { email: 'caleb@pecofoods.com', password: '6969', role: 'Admin' },

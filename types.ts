@@ -76,7 +76,10 @@ export enum AppMode {
   AIChat = 'ai-chat',
   DensityCalculator = 'density-calculator',
   Scope = 'scope',
-  NewsFeed = 'news-feed'
+  NewsFeed = 'news-feed',
+  ScenarioRoot = 'scenario-root',
+  ScenarioTraining = 'scenario-training',
+  ScenarioNewsFeed = 'scenario-news-feed'
 }
 
 export interface PMItem {
@@ -242,7 +245,7 @@ export type AppView =
   | 'scenario-creator'
   | 'employee-management'
   | 'break-tracker'
-  | 'scenario-newsfeed'
+  | 'scenario-news-feed'
   | 'troubleshooting-log'
   | 'operator-training';
 

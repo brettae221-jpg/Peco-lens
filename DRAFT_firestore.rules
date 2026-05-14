@@ -10,8 +10,8 @@ service cloud.firestore {
     // Common Primitives
     function isSignedIn() { return request.auth != null; }
     function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
-    function isOwnerEmail(email) { return isSignedIn() && (request.auth.token.email == email || request.auth.token.email == null); }
-    function isAdmin() { return isSignedIn() && (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'); }
+    function isOwnerEmail(email) { return isSignedIn() && request.auth.token.email == email; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'; }
     function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
     
     function incoming() { return request.resource.data; }
@@ -23,15 +23,21 @@ service cloud.firestore {
         return data.keys().hasAll(['email', 'role'])
           && data.email is string && data.email.size() <= 100
           && data.role in ['Admin', 'Operator']
-          && (data.keys().size() <= 15);
+          && (data.keys().size() <= 12);
       }
 
-      allow read: if isSignedIn();
-      allow create: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      
+      allow create: if isSignedIn() && isValidUser(incoming()) && (
+        isAdmin() || (userId == request.auth.uid && incoming().role == 'Operator')
+      );
+      
       allow update: if (isSignedIn() && isValidUser(incoming()) && (
         isAdmin() || 
         (userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'username', 'dept', 'appPosition', 'password', 'firstLogin', 'accessibleModes']))
       ));
+      
       allow delete: if isAdmin();
     }
 
@@ -50,10 +56,11 @@ service cloud.firestore {
 
       allow read, list: if isSignedIn();
       
-      allow create: if isSignedIn() && isValidPMItem(incoming());
+      allow create: if isSignedIn() && isValidPMItem(incoming()) && isOwnerEmail(incoming().loggedBy);
       
       allow update: if (isSignedIn() && isValidPMItem(incoming()) && (
-        isAdmin() || (incoming().diff(existing()).affectedKeys().hasOnly(['partName', 'issueDescription', 'severity', 'status']))
+        isAdmin() ||
+        (isOwnerEmail(existing().loggedBy) && existing().status == 'Pending' && incoming().diff(existing()).affectedKeys().hasOnly(['partName', 'issueDescription', 'severity', 'status']))
       ));
 
       allow delete: if isAdmin();
@@ -74,13 +81,16 @@ service cloud.firestore {
       }
 
       allow read, list: if isSignedIn();
-      allow create: if isSignedIn() && isValidPMEntry(incoming());
-      allow update: if (isSignedIn() && isValidPMEntry(incoming()));
+      allow create: if isSignedIn() && isValidPMEntry(incoming()) && isOwner(incoming().userId);
+      allow update: if (isSignedIn() && isValidPMEntry(incoming()) && (
+        isAdmin() ||
+        (isOwner(existing().userId) && incoming().diff(existing()).affectedKeys().hasOnly(['status']))
+      ));
       allow delete: if isAdmin();
     }
 
-    // --- NEWS FEED ---
-    match /news_feed/{postId} {
+    // --- NEWSFEED ---
+    match /newsfeed/{postId} {
       function isValidNewsPost(data) {
         return data.keys().hasAll(['userId', 'userEmail', 'type', 'textContent', 'timestamp'])
           && data.userId is string
@@ -89,53 +99,12 @@ service cloud.firestore {
           && data.timestamp is timestamp;
       }
 
-      allow read: if true; // Relaxed for facility discovery
-      allow create: if isSignedIn() && isValidNewsPost(incoming());
-      allow update: if (isSignedIn() && (
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidNewsPost(incoming()) && isOwner(incoming().userId);
+      allow update: if (isSignedIn() && isValidNewsPost(incoming()) && (
         (incoming().diff(existing()).affectedKeys().hasOnly(['likes']))
       ));
       allow delete: if isAdmin() || (isSignedIn() && isOwner(existing().userId));
-    }
-
-    // --- AUDIT LOGS ---
-    match /audit_logs/{logId} {
-      function isValidAuditLog(data) {
-        return data.keys().hasAll(['userId', 'action', 'timestamp', 'severity'])
-          && data.userId is string
-          && data.action is string && data.action.size() <= 500
-          && data.timestamp is timestamp
-          && data.severity in ['info', 'warning', 'critical'];
-      }
-      allow read: if isAdmin();
-      allow create: if isSignedIn() && isValidAuditLog(incoming());
-    }
-
-    // --- GALLERY ASSETS ---
-    match /gallery_assets/{assetId} {
-       allow read: if true;
-       allow create: if isSignedIn();
-       allow update, delete: if isAdmin() || (isSignedIn() && isOwner(existing().userId));
-    }
-
-    // --- MACHINES ---
-    match /machines/{machineId} {
-       allow read: if isSignedIn();
-       allow write: if isAdmin();
-    }
-
-    // --- MESSAGES / THREADS ---
-    match /messages/{msgId} {
-      allow read: if isSignedIn() && (resource.data.senderEmail == request.auth.token.email || resource.data.receiverEmail == request.auth.token.email);
-      allow create: if isSignedIn();
-    }
-
-    match /threads/{threadId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-      
-      match /messages/{msgId} {
-        allow read, write: if isSignedIn();
-      }
     }
 
     // --- TEST RESULTS ---
@@ -151,9 +120,9 @@ service cloud.firestore {
           && data.percentage is number
           && data.timestamp is timestamp;
       }
-      allow get: if isSignedIn() && (isAdmin() || isOwner(resource.data.userId));
+      allow get: if isValidId(resultId) && isSignedIn() && (isAdmin() || isOwner(resource.data.userId));
       allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
-      allow create: if isSignedIn() && isValidTestResult(incoming()) && isOwner(incoming().userId);
+      allow create: if isValidId(resultId) && isSignedIn() && isValidTestResult(incoming()) && isOwner(incoming().userId);
     }
 
     // --- AI CACHE ---
@@ -163,13 +132,13 @@ service cloud.firestore {
     }
 
     // --- SYSTEM CONFIG ---
-    match /system/{document=**} {
-      allow read: if true;
+    match /system/config {
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
     match /system_modules/{moduleId} {
-      allow read: if true;
+      allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
