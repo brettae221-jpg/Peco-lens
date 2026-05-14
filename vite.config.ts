@@ -1,19 +1,15 @@
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
+    const env = loadEnv(mode, process.cwd(), '');
     const geminiKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
     
     return {
-      base: './', // Ensures assets load correctly on GitHub Pages and other sub-directory hosts
+      base: './', 
       server: {
         port: 3000,
         host: '0.0.0.0',
@@ -52,7 +48,7 @@ export default defineConfig(({ mode }) => {
             theme_color: '#e11d48',
             background_color: '#020617',
             display: 'standalone',
-            start_url: '.',
+            start_url: './',
             icons: [
               {
                 src: 'image_6afa23fe.png',
@@ -82,7 +78,7 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          '@': path.resolve(process.cwd(), '.'),
         },
         dedupe: ['react', 'react-dom']
       }
