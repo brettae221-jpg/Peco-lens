@@ -53,51 +53,80 @@ const Lenses: React.FC<LensesProps> = ({ onBack }) => {
 
 const LensMenu: React.FC<{ onSelect: (v: LensView) => void; onBack: () => void }> = ({ onSelect, onBack }) => {
   const lenses = [
-    { id: 'ar', name: 'AR Lens', icon: Camera, color: 'bg-brand-red', machine: 'All Systems' },
-    { id: 'poultry', name: 'Poultry Lens', icon: Eye, color: 'bg-emerald-500', machine: 'Manual Upload Only' },
-    { id: 'megajet', name: 'MegaJet Lens', icon: Droplet, color: 'bg-blue-500', machine: 'MJ-8 Waterjets' },
-    { id: 'grasselli', name: 'Grasselli Lens', icon: Box, color: 'bg-orange-500', machine: 'GR-4.2 Skinners' },
-    { id: 'vision', name: 'Vision Sys Lens', icon: Zap, color: 'bg-purple-500', machine: 'Sortation Lines' },
-    { id: 'thermal', name: 'Thermal Lens', icon: Thermometer, color: 'bg-yellow-500', machine: 'Internal Parts' },
-    { id: 'calibration', name: 'Calibration Lens', icon: Target, color: 'bg-slate-600', machine: 'Maintenance Only' },
-    { id: 'scope', name: 'Live Scope', icon: Activity, color: 'bg-indigo-500', machine: 'MJ Motion Diagnostics' },
+    { id: 'ar', name: 'AR Lens', icon: Camera, color: 'bg-brand-red', machine: 'All Systems', active: true },
+    { id: 'poultry', name: 'Poultry Lens', icon: Eye, color: 'bg-emerald-500', machine: 'Manual Upload Only', active: true },
+    { id: 'megajet', name: 'MegaJet Lens', icon: Droplet, color: 'bg-blue-500', machine: 'MJ-8 Waterjets', active: true },
+    { id: 'grasselli', name: 'Grasselli Lens', icon: Box, color: 'bg-orange-500', machine: 'GR-4.2 Skinners', active: true },
+    { id: 'vision', name: 'Vision Sys Lens', icon: Zap, color: 'bg-purple-500', machine: 'Sortation Lines', active: true },
+    { id: 'thermal', name: 'Thermal Lens', icon: Thermometer, color: 'bg-yellow-500', machine: 'Internal Parts', active: true },
+    { id: 'calibration', name: 'Calibration Lens', icon: Target, color: 'bg-slate-600', machine: 'Maintenance Only', active: true },
+    { id: 'scope', name: 'Live Scope', icon: Activity, color: 'bg-indigo-500', machine: 'MJ Motion Diagnostics', active: true },
   ];
 
   return (
-    <div className="h-full overflow-y-auto p-8 space-y-6 pb-24 relative">
-      <div className="flex items-center space-x-4 mb-4">
-        <button 
-          onClick={onBack}
-          className="p-3 bg-white/5 rounded-2xl border border-white/10 text-white active:scale-95 transition-all"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div className="h-1 w-20 bg-brand-red/20 rounded-full" />
-      </div>
-      
-      <div className="mb-10">
-        <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">System <span className="text-brand-red">Lenses</span></h2>
-        <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest">Select an intelligence layer to project onto equipment.</p>
+    <div className="h-full w-full overflow-y-auto no-scrollbar relative bg-slate-950">
+      {/* Immersive Background */}
+      <div className="fixed inset-0 opacity-10 pointer-events-none">
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-brand-red/20 rounded-full blur-[150px] animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-500/10 rounded-full blur-[120px]" />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {lenses.map((lens) => (
-          <motion.button
-            key={lens.id}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onSelect(lens.id as LensView)}
-            className="bg-white/5 border border-white/5 rounded-[2.5rem] p-8 flex items-center group hover:bg-white/10 transition-all text-left shadow-2xl"
-          >
-            <div className={`p-5 rounded-[1.5rem] ${lens.color} mr-6 shadow-lg shadow-black/40 group-hover:scale-110 transition-transform`}>
-              <lens.icon className="h-7 w-7 text-white" />
+      <div className="relative z-10 p-8 space-y-10 pb-32 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-6">
+            <button 
+              onClick={onBack}
+              className="p-5 bg-white/5 backdrop-blur-3xl rounded-[1.5rem] border border-white/10 text-white active:scale-95 transition-all shadow-2xl"
+            >
+              <ArrowLeft className="h-7 w-7" />
+            </button>
+            <div>
+              <h2 className="text-5xl font-black text-white uppercase tracking-tighter leading-none">System <span className="text-brand-red">Lenses</span></h2>
+              <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.4em] mt-3">Select an intelligence layer to project onto equipment.</p>
             </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-black text-white uppercase tracking-tight">{lens.name}</h3>
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">{lens.machine}</p>
-            </div>
-            <ChevronRight className="h-6 w-6 text-slate-700 group-hover:text-white transition-colors" />
-          </motion.button>
-        ))}
+          </div>
+          <div className="hidden md:flex items-center space-x-4">
+             <div className="text-right">
+                <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-1">Status</p>
+                <div className="flex items-center space-x-2">
+                   <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                   <span className="text-[10px] font-black text-white uppercase tracking-widest">Sensors Ready</span>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pt-10">
+          {lenses.map((lens, idx) => (
+            <motion.button
+              key={lens.id}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => onSelect(lens.id as LensView)}
+              className="bg-white/5 border border-white/5 rounded-[3rem] p-10 flex flex-col group hover:bg-white/10 hover:border-white/10 transition-all text-left shadow-2xl relative overflow-hidden h-[320px]"
+            >
+              <div className={`p-6 rounded-[2rem] ${lens.color} mb-12 shadow-xl shadow-black/40 group-hover:scale-110 transition-transform w-20 h-20 flex items-center justify-center`}>
+                <lens.icon className="h-10 w-10 text-white" />
+              </div>
+              
+              <div className="mt-auto">
+                <h3 className="text-2xl font-black text-white uppercase tracking-tight leading-tight">{lens.name}</h3>
+                <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-2">{lens.machine}</p>
+              </div>
+
+              <div className="absolute top-10 right-10 opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
+                <div className="h-12 w-12 bg-white rounded-full flex items-center justify-center text-slate-950">
+                  <ArrowRight className="h-6 w-6" />
+                </div>
+              </div>
+
+              {/* Technical Accents */}
+              <div className="absolute bottom-0 left-0 h-1 bg-white/10 w-full transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
+            </motion.button>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -207,6 +236,34 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
     }
   };
 
+  const [searchStatus, setSearchStatus] = useState('Standby');
+  const searchPhrases = [
+    'Scanning Neural Vectors...',
+    'Analyzing Thermal Signatures...',
+    'Checking Belt PSI Variance...',
+    'Querying Global Facility Registry...',
+    'Detecting Mechanical Slop...',
+    'Verifying Nozzle Alignment...',
+    'Assessing Cutter Arm Sync...',
+    'Tracing Wago Handshake...',
+    'Calibrating Optical Flow...',
+    'Computing Volumetric Flowrate...',
+    'Triangulating Parts Position...',
+    'Executing Heuristic Diagnostic...'
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isScanning) {
+      interval = setInterval(() => {
+        setSearchStatus(searchPhrases[Math.floor(Math.random() * searchPhrases.length)]);
+      }, 800);
+    } else {
+      setSearchStatus('Uplink Synchronized');
+    }
+    return () => clearInterval(interval);
+  }, [isScanning]);
+
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -264,11 +321,23 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
             <h3 className="text-xl font-black text-white uppercase tracking-tighter leading-none">{info.name}</h3>
             <div className="flex items-center space-x-2 mt-1">
                 <div className={`h-1.5 w-1.5 rounded-full bg-emerald-500 ${isScanning ? 'animate-ping' : ''}`} />
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Uplink: Synchronized</p>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">
+                  {isScanning ? searchStatus : 'Uplink: Synchronized'}
+                </p>
             </div>
           </div>
         </div>
         <div className="flex items-center space-x-2">
+            {isScanning && (
+              <div className="flex flex-col items-end mr-4 hidden sm:flex">
+                <div className="flex space-x-1">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="h-1 w-1 bg-brand-red animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
+                  ))}
+                </div>
+                <span className="text-[7px] font-black text-brand-red uppercase tracking-widest mt-1">Processing Neural Batch</span>
+              </div>
+            )}
             <button 
                 onClick={() => setIsMuted(!isMuted)}
                 className={`p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 ${isMuted ? 'text-slate-500' : 'text-emerald-500'} active:scale-95 transition-all`}
@@ -336,6 +405,38 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
 
             {isScanning && (
                 <div className="absolute inset-x-0 h-1.5 bg-brand-red shadow-[0_0_20px_rgba(239,68,68,0.8)] animate-scan z-30" />
+            )}
+
+            {isScanning && (
+              <div className="absolute right-6 top-1/2 -translate-y-1/2 w-64 space-y-2 z-30 hidden md:block">
+                {[...Array(20)].map((_, i) => (
+                  <motion.div 
+                    key={i}
+                    initial={{ opacity: 0, x: 50 }}
+                    animate={{ opacity: [0, 0.8, 0], x: [50, 0, -50] }}
+                    transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.08 }}
+                    className="text-[7px] font-mono text-emerald-500 uppercase whitespace-nowrap flex items-center space-x-2"
+                  >
+                    <span className="opacity-40">0x{Math.random().toString(16).substring(2, 6).toUpperCase()}</span>
+                    <span className="text-emerald-400 font-black tracking-widest">SCANNING_BIT_{i}</span>
+                    <span className="opacity-40">{Math.random().toFixed(4)}</span>
+                  </motion.div>
+                ))}
+                
+                <div className="mt-8 pt-8 border-t border-white/10">
+                   <div className="flex items-center justify-between text-[8px] font-black text-white uppercase tracking-[0.2em] mb-2">
+                      <span>Neural Load</span>
+                      <span className="text-emerald-500">{(Math.random() * 100).toFixed(1)}%</span>
+                   </div>
+                   <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
+                      <motion.div 
+                        animate={{ width: ['20%', '80%', '40%', '95%', '60%'] }}
+                        transition={{ repeat: Infinity, duration: 4 }}
+                        className="h-full bg-brand-red shadow-[0_0_10px_rgba(225,29,72,0.8)]"
+                      />
+                   </div>
+                </div>
+              </div>
             )}
 
             {/* Detection Markers */}

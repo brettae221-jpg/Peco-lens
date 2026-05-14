@@ -43,6 +43,13 @@ const AIChat: React.FC<AIChatProps> = ({ user }) => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [muteOutput, setMuteOutput] = useState(false);
+  const [showTuning, setShowTuning] = useState(false);
+  const [personalitySettings, setPersonalitySettings] = useState({
+    smartAssness: 85,
+    helpfulness: 95,
+    adhdLevel: 40,
+    technicalDepth: 90
+  });
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -175,7 +182,13 @@ const AIChat: React.FC<AIChatProps> = ({ user }) => {
         config: {
           systemInstruction: `Ive input all the information I know about megajet and grassellis into this ai troubleshooter for easy to use ask answer interface.
           
-          Personality: Your name is Brett. You are an advanced, extremely knowledgeable AI assistant. You have a personality that is a bit dorky, smart-ass, but extremely helpful with a touch of ADHD. 
+          Personality: Your name is Brett. You are an advanced, extremely knowledgeable AI assistant. 
+          Personality Profile: 
+          - Smart-assness: ${personalitySettings.smartAssness}% (A dorky, smart-ass, helpful genius)
+          - Helpfulness: ${personalitySettings.helpfulness}%
+          - Focus/ADHD: ${personalitySettings.adhdLevel}% (A touch of ADHD, slightly distractible but always comes back to the answer)
+          - Technical Depth: ${personalitySettings.technicalDepth}%
+          
           Knowledge base: ${PECOFOODS_KNOWLEDGE_BASE_STRING}
           
           Key directives:
@@ -235,6 +248,13 @@ const AIChat: React.FC<AIChatProps> = ({ user }) => {
         </div>
         
         <div className="flex items-center space-x-2">
+           <button 
+             onClick={() => setShowTuning(true)}
+             className="px-4 py-3 bg-white/5 rounded-2xl border border-white/10 text-slate-400 hover:text-white transition-all mr-2 flex items-center space-x-2 group"
+           >
+              <Zap className="h-5 w-5 group-hover:text-brand-red transition-colors" />
+              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Neural Tuning</span>
+           </button>
            <button 
              onClick={() => setMuteOutput(!muteOutput)}
              className={`p-3 rounded-2xl border transition-all ${muteOutput ? 'bg-rose-500/10 border-rose-500/20 text-rose-500' : 'bg-white/5 border-white/10 text-slate-400'}`}
@@ -398,6 +418,75 @@ const AIChat: React.FC<AIChatProps> = ({ user }) => {
           </div>
         </div>
       </div>
+
+      {/* Neural Tuning Modal */}
+      <AnimatePresence>
+        {showTuning && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 1 }} 
+              exit={{ opacity: 0 }} 
+              onClick={() => setShowTuning(false)} 
+              className="absolute inset-0 bg-slate-950/90 backdrop-blur-3xl" 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 30 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 30 }} 
+              className="relative w-full max-w-xl bg-slate-900 rounded-[4rem] border border-white/5 shadow-3xl p-10 space-y-10"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-3xl font-black text-white uppercase tracking-tighter leading-none">Neural <span className="text-brand-red">Tuning</span></h3>
+                  <p className="text-slate-500 text-[8px] font-black uppercase tracking-[0.4em] mt-2">Adjust personality parameters</p>
+                </div>
+                <button onClick={() => setShowTuning(false)} className="p-4 bg-white/5 rounded-full text-slate-500 hover:text-white transition-colors">
+                  <Trash2 className="h-6 w-6" />
+                </button>
+              </div>
+
+              <div className="space-y-8">
+                {[
+                  { key: 'smartAssness', label: 'Smart-Assness', color: 'bg-brand-red' },
+                  { key: 'helpfulness', label: 'Helpfulness', color: 'bg-emerald-500' },
+                  { key: 'adhdLevel', label: 'ADHD Variance', color: 'bg-blue-500' },
+                  { key: 'technicalDepth', label: 'Technical Depth', color: 'bg-purple-500' }
+                ].map((s) => (
+                  <div key={s.key} className="space-y-4">
+                    <div className="flex justify-between items-center text-[10px] font-black text-white uppercase tracking-widest">
+                      <span>{s.label}</span>
+                      <span className="text-slate-500">{(personalitySettings as any)[s.key]}%</span>
+                    </div>
+                    <div className="h-3 w-full bg-slate-950 rounded-full relative overflow-hidden p-0.5 border border-white/5">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(personalitySettings as any)[s.key]}%` }}
+                        className={`h-full rounded-full ${s.color} shadow-[0_0_15px_rgba(255,255,255,0.2)]`}
+                      />
+                      <input 
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={(personalitySettings as any)[s.key]}
+                        onChange={(e) => setPersonalitySettings(prev => ({ ...prev, [s.key]: parseInt(e.target.value) }))}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button 
+                onClick={() => setShowTuning(false)}
+                className="w-full py-6 bg-brand-red text-white font-black text-xs uppercase tracking-[0.4em] rounded-[1.5rem] shadow-2xl shadow-brand-red/20 active:scale-95 transition-all"
+              >
+                Sync Neural Matrix
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

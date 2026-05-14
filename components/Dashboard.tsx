@@ -52,7 +52,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
   const [isPosting, setIsPosting] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'newsfeed'), orderBy('timestamp', 'desc'), limit(50));
+    const q = query(collection(db, 'news_feed'), orderBy('timestamp', 'desc'), limit(50));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const newPosts = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -61,7 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
       } as NewsPost));
       setPosts(newPosts);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'newsfeed');
+      handleFirestoreError(error, OperationType.LIST, 'news_feed');
     });
     return () => unsubscribe();
   }, []);
@@ -70,7 +70,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
     if (!statusText.trim()) return;
     try {
       setIsPosting(true);
-      await addDoc(collection(db, 'newsfeed'), {
+      await addDoc(collection(db, 'news_feed'), {
         userId: user.id || 'unknown',
         userEmail: user.email,
         userName: user.name || user.username || 'Collaborator',
@@ -81,7 +81,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
       });
       setStatusText('');
     } catch (e) {
-      handleFirestoreError(e, OperationType.CREATE, 'newsfeed');
+      handleFirestoreError(e, OperationType.CREATE, 'news_feed');
     } finally {
       setIsPosting(false);
     }
@@ -90,8 +90,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
   const handleLike = async (postId: string, currentLikes: string[] = []) => {
     try {
       const { updateDoc, doc: fireDoc, arrayUnion, arrayRemove } = await import('firebase/firestore');
-      const postRef = fireDoc(db, 'newsfeed', postId);
-      const isLiked = currentLikes.includes(user.email);
+      const postRef = fireDoc(db, 'news_feed', postId);
+      const isLiked = currentLikes?.includes(user.email);
       
       await updateDoc(postRef, {
         likes: isLiked ? arrayRemove(user.email) : arrayUnion(user.email)
@@ -143,10 +143,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
           <h2 className="text-4xl font-black text-white tracking-tighter uppercase mb-1">
             Global <span className="text-brand-red">Feed</span>
           </h2>
-          <p className="text-slate-500 font-bold uppercase text-[9px] tracking-widest flex items-center">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse mr-2" />
-            Synchronized Neural Activity
-          </p>
+          <div className="flex items-center space-x-4">
+            <p className="text-slate-500 font-bold uppercase text-[9px] tracking-widest flex items-center">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse mr-2" />
+              Synchronized Neural Activity
+            </p>
+            <button 
+              onClick={() => onNavigate(AppMode.NewsFeed)}
+              className="px-4 py-1.5 bg-brand-red/10 border border-brand-red/20 rounded-full text-[8px] font-black text-brand-red uppercase tracking-widest hover:bg-brand-red hover:text-white transition-all shadow-lg"
+            >
+              Full Broadcasts
+            </button>
+          </div>
         </div>
         <div className="flex -space-x-2">
             {[1,2,3].map(i => (

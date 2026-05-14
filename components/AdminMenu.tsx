@@ -45,7 +45,39 @@ import { User, AppMode, ModuleConfig, AuditLog, SystemConfig } from '../types';
 import { collection, query, orderBy, getDocs, limit, addDoc, serverTimestamp, doc, setDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  AreaChart,
+  Area
+} from 'recharts';
+
 type AdminView = 'menu' | 'users' | 'access' | 'logs' | 'config';
+
+const dummyActivityData = [
+    { time: '08:00', queries: 45, events: 12 },
+    { time: '09:00', queries: 82, events: 18 },
+    { time: '10:00', queries: 65, events: 25 },
+    { time: '11:00', queries: 120, events: 42 },
+    { time: '12:00', queries: 110, events: 38 },
+    { time: '13:00', queries: 95, events: 30 },
+    { time: '14:00', queries: 155, events: 55 },
+    { time: '15:00', queries: 170, events: 62 },
+];
+
+const facilityLines = [
+    { id: 'L1', status: 'Online', efficiency: 98, load: 85 },
+    { id: 'L2', status: 'Online', efficiency: 94, load: 78 },
+    { id: 'L3', status: 'Maintenance', efficiency: 0, load: 0 },
+    { id: 'L4', status: 'Online', efficiency: 88, load: 92 },
+    { id: 'L5', status: 'Online', efficiency: 96, load: 81 },
+    { id: 'L6', status: 'Offline', efficiency: 0, load: 0 },
+];
 
 interface AdminMenuProps {
     user: User;
@@ -603,58 +635,121 @@ const AdminMenu: React.FC<AdminMenuProps> = ({ user }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
                 <div className="lg:col-span-2 space-y-8">
                     <div className="bg-white/5 border border-white/5 rounded-[4rem] p-12 overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 p-16 opacity-5 rotate-12 group-hover:rotate-0 transition-all duration-1000 scale-150">
-                            <Activity className="h-64 w-64 text-white" />
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h3 className="text-3xl font-black text-white uppercase tracking-tight">Neural Pulse <span className="text-brand-red">Analytics</span></h3>
+                                <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest mt-2">Facility-wide intelligence demand monitor</p>
+                            </div>
+                            <div className="flex space-x-4">
+                                <div className="flex items-center space-x-2">
+                                    <div className="h-2 w-2 rounded-full bg-brand-red" />
+                                    <span className="text-[8px] font-black text-slate-500 uppercase">Queries</span>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <div className="h-2 w-2 rounded-full bg-indigo-500" />
+                                    <span className="text-[8px] font-black text-slate-500 uppercase">Events</span>
+                                </div>
+                            </div>
                         </div>
-                        <h3 className="text-3xl font-black text-white uppercase tracking-tight mb-4">Neural Traffic Broadcast</h3>
-                        <p className="text-slate-500 text-xs font-medium leading-relaxed max-w-md mb-10">Initiate facility-wide protocol updates across all active nodes and connected machinery. This forces immediate resource checks.</p>
-                        <div className="flex space-x-6">
-                            <button 
-                                onClick={issueRemoteUpdate}
-                                className="px-10 py-5 bg-brand-red rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] text-white flex items-center space-x-4 shadow-2xl shadow-brand-red/30 active:scale-95 transition-all"
-                            >
-                                <RefreshCcw className="h-5 w-5" />
-                                <span>Execute Remote Update</span>
-                            </button>
-                            <button 
-                                className="px-10 py-5 bg-white/5 border border-white/5 rounded-3xl text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-white transition-all flex items-center space-x-4"
-                            >
-                                <Database className="h-5 w-5" />
-                                <span>Export Registry</span>
-                            </button>
+                        
+                        <div className="h-[300px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={dummyActivityData}>
+                                    <defs>
+                                        <linearGradient id="colorQueries" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#e11d48" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#e11d48" stopOpacity={0}/>
+                                        </linearGradient>
+                                        <linearGradient id="colorEvents" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <Tooltip 
+                                        contentStyle={{ backgroundColor: 'rgba(2, 6, 23, 0.95)', borderColor: 'rgba(255,255,255,0.1)', borderRadius: '16px' }}
+                                        itemStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase' }}
+                                    />
+                                    <Area type="monotone" dataKey="queries" stroke="#e11d48" strokeWidth={3} fillOpacity={1} fill="url(#colorQueries)" />
+                                    <Area type="monotone" dataKey="events" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorEvents)" />
+                                </AreaChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
 
-                    <div className="bg-brand-red/5 border border-brand-red/20 rounded-[4rem] p-12 flex items-center justify-between overflow-hidden relative">
-                         <div className="absolute -left-10 -bottom-10 h-64 w-64 bg-brand-red/10 blur-[80px]" />
-                         <div className="relative z-10 flex-1">
-                            <h3 className="text-2xl font-black text-brand-red uppercase tracking-tight mb-2">Emergency Lockout</h3>
-                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest leading-none">Immediate cessation of all neural connections</p>
+                    <div className="bg-white/5 border border-white/5 rounded-[4rem] p-12 overflow-hidden relative group">
+                         <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h3 className="text-2xl font-black text-white uppercase tracking-tight">Facility <span className="text-emerald-500">Node Status</span></h3>
+                                <p className="text-slate-500 text-[8px] font-black uppercase tracking-widest mt-1">Real-time production line synchronization</p>
+                            </div>
+                            <button 
+                                onClick={issueRemoteUpdate}
+                                className="px-6 py-3 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black text-white hover:bg-white/10 transition-all flex items-center space-x-2"
+                            >
+                                <RefreshCcw className="h-4 w-4" />
+                                <span>RE-SYNC ALL</span>
+                            </button>
                          </div>
-                         <button className="relative z-10 p-10 bg-brand-red rounded-full shadow-2xl shadow-brand-red/50 active:scale-90 transition-transform">
-                             <Lock className="h-8 w-8 text-white" />
-                         </button>
+
+                         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                            {facilityLines.map(line => (
+                                <div key={line.id} className="p-6 bg-slate-950/50 border border-white/5 rounded-[2rem] hover:border-white/10 transition-all">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-lg font-black text-white">{line.id}</span>
+                                        <div className={`h-2 w-2 rounded-full ${line.status === 'Online' ? 'bg-emerald-500' : line.status === 'Maintenance' ? 'bg-yellow-500' : 'bg-rose-500'} shadow-[0_0_10px_currentColor] animate-pulse`} />
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <div className="flex justify-between text-[8px] font-black text-slate-600 uppercase mb-1">
+                                                <span>Efficiency</span>
+                                                <span className="text-white">{line.efficiency}%</span>
+                                            </div>
+                                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                                <div className="h-full bg-emerald-500 transition-all duration-1000" style={{ width: `${line.efficiency}%` }} />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between text-[8px] font-black text-slate-600 uppercase mb-1">
+                                                <span>Neural Load</span>
+                                                <span className="text-white">{line.load}%</span>
+                                            </div>
+                                            <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                                                <div className="h-full bg-indigo-500 transition-all duration-1000" style={{ width: `${line.load}%` }} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                         </div>
                     </div>
                 </div>
 
-                <div className="lg:col-span-1 bg-white/5 border border-white/5 rounded-[4rem] p-12 flex flex-col items-center justify-center text-center space-y-8">
-                    <div className="h-24 w-24 bg-brand-red/10 border border-brand-red/20 rounded-full flex items-center justify-center relative">
-                        <div className="absolute inset-0 bg-brand-red/20 rounded-full animate-ping" />
-                        <Activity className="h-10 w-10 text-brand-red" />
-                    </div>
-                    <div>
-                        <h4 className="text-2xl font-black text-white uppercase tracking-tight mb-2">System Pulse</h4>
-                        <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest max-w-[200px] mx-auto">Neural latency within parameters. 12 active nodes connected.</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 w-full">
-                         <div className="p-6 bg-black/20 rounded-3xl border border-white/5">
-                            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mb-2">AUTH_REQ</p>
-                            <p className="text-lg font-black text-emerald-500">2.1k</p>
-                         </div>
-                         <div className="p-6 bg-black/20 rounded-3xl border border-white/5">
-                            <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mb-2">ERR_LOGS</p>
-                            <p className="text-lg font-black text-brand-red">04</p>
-                         </div>
+                <div className="lg:col-span-1 space-y-8">
+                    <div className="bg-white/5 border border-white/5 rounded-[4rem] p-12 flex flex-col items-center justify-center text-center space-y-8 h-full relative overflow-hidden group">
+                        <div className="absolute inset-0 bg-gradient-to-b from-brand-red/5 to-transparent pointer-events-none" />
+                        <div className="h-40 w-40 bg-brand-red/10 border border-brand-red/20 rounded-full flex items-center justify-center relative">
+                            <div className="absolute inset-0 bg-brand-red/20 rounded-full animate-ping" />
+                            <Activity className="h-16 w-16 text-brand-red group-hover:scale-110 transition-transform" />
+                        </div>
+                        <div className="relative z-10">
+                            <h4 className="text-3xl font-black text-white uppercase tracking-tight mb-2">Global Pulse</h4>
+                            <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest max-w-[200px] mx-auto leading-relaxed italic">
+                                Facility intelligence synchronized. Current neural throughput at 82% capacity.
+                            </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 w-full relative z-10">
+                             <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5">
+                                <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mb-2">AUTH_BATCH</p>
+                                <p className="text-3xl font-black text-emerald-500 tabular-nums">2.1k</p>
+                             </div>
+                             <div className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5">
+                                <p className="text-[8px] font-black text-slate-700 uppercase tracking-widest mb-2">LOG_DELTA</p>
+                                <p className="text-3xl font-black text-brand-red tabular-nums">+04</p>
+                             </div>
+                        </div>
+                        <button className="w-full py-6 bg-white/5 hover:bg-brand-red text-white font-black text-[10px] uppercase tracking-[0.4em] rounded-[2rem] border border-white/10 transition-all">
+                            Terminal Lockdown
+                        </button>
                     </div>
                 </div>
             </div>
