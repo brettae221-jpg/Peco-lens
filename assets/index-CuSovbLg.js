@@ -12782,6 +12782,12 @@ Use the logic defined in the knowledge base to provide the exact density setting
     **CALIBRATION LENS SPECIFIC:**
     - Detect alignment and scale issues. Check for angular drift in cutter paths.
 
+    **SCOPE LENS SPECIFIC:**
+    - Analyze high-frequency motion scope waveforms from the HMI.
+    - Identify: jitter, oscillations, phase slop, and sync drops.
+    - Correlate line colors: Orange (Command), White (Position), Yellow (Velocity), Purplish Blue (Noise).
+    - Diagnose: loose belts, worn v-wheels, mechanical resistance.
+
     --- KNOWLEDGE BASE REFERENCE ---
     ${fj}
 
