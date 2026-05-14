@@ -1,0 +1,37 @@
+{
+  "name": "Peco-lens Command Center",
+  "short_name": "Peco-lens",
+  "description": "Advanced troubleshooting and intelligence platform for Peco Foods industrial facilities. Managed by Brett Ae.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#e11d48",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "image_6afa23fe.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "image_6afa23fe.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities", "industrial"],
+  "shortcuts": [
+    {
+      "name": "View Lenses",
+      "url": "/?mode=lenses",
+      "description": "Quick access to AR troubleshooting"
+    },
+    {
+      "name": "Neural Link",
+      "url": "/?mode=aichat",
+      "description": "Open AI Assistant"
+    }
+  ]
+}
