@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { usePWAUpdate, useInstallPrompt } from '../services/pwaService';
+import { usePWAUpdate } from '../services/pwaService';
 import { User } from '../types';
 import { 
   User as UserIcon, 
