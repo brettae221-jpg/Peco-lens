@@ -1,0 +1,82 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Common Primitives
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin() { return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'Admin'; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // PM Items Collection
+    match /pm_items/{itemId} {
+      function isValidPMItem(data) {
+        return data.keys().hasAll(['timestamp', 'equipmentType', 'partName', 'issueDescription', 'severity', 'loggedBy', 'status'])
+          && data.timestamp is timestamp
+          && data.equipmentType in ['Megajet', 'Grasselli', 'Vision', 'Thermal', 'General']
+          && data.partName is string && data.partName.size() <= 200
+          && data.issueDescription is string && data.issueDescription.size() <= 1000
+          && data.severity in ['Low', 'Medium', 'High']
+          && data.loggedBy is string
+          && data.status in ['Pending', 'Fixed'];
+      }
+
+      allow list: if isSignedIn();
+      allow get: if isSignedIn();
+      
+      allow create: if isSignedIn() && isValidPMItem(request.resource.data);
+      
+      allow update: if (isSignedIn() && (
+        // Admin can mark as fixed
+        (isAdmin() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])) ||
+        // Owner can edit details if still pending
+        (resource.data.loggedBy == request.auth.token.email && resource.data.status == 'Pending' && isValidPMItem(request.resource.data))
+      ));
+
+      allow delete: if isAdmin();
+    }
+
+    // Users Collection
+    match /users/{userId} {
+      function isValidUser(data) {
+        return data.keys().hasAll(['email', 'role'])
+          && data.email is string && data.email.size() <= 100
+          && data.role in ['Admin', 'Operator'];
+      }
+
+      allow read: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isSignedIn(); // Allow provisioning initial users or admin adding
+      allow update: if isSignedIn() && (
+        isAdmin() || 
+        (resource.data.email == request.auth.token.email) ||
+        (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['password', 'firstLogin']))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Messages, Alerts, Broadcasts, and PM List Collections
+    match /{collection}/{docId} {
+      allow read, list: if isSignedIn() && collection in ['messages', 'alerts', 'broadcasts', 'pmlist'];
+      allow create: if isSignedIn() && collection in ['messages', 'alerts', 'broadcasts', 'pmlist'];
+      allow delete: if isAdmin() && collection in ['messages', 'alerts', 'broadcasts', 'pmlist'];
+    }
+
+    // System Config
+    match /system/config {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // System Modules
+    match /system_modules/{moduleId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

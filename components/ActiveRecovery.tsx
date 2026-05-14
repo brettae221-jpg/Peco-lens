@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ChatMessage, User, LogEntry } from '../types';
 import { getAIChatResponse, createLogEntryFromChat } from '../services/geminiService';
 import { SendIcon } from './icons/SendIcon';
-import { UserIcon } from './icons/UserIcon';
+import { UserIcon } from './UserIcon';
 import { CogIcon } from './icons/CogIcon';
 import { BookOpenIcon } from './icons/BookOpenIcon';
 import { UploadIcon } from './icons/UploadIcon';

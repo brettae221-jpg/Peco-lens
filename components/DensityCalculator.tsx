@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { calculateDensitySetting } from '../services/geminiService';
 import { CogIcon } from './icons/CogIcon';
-import { CalculatorIcon } from './icons/CalculatorIcon';
+import { CalculatorIcon } from './CalculatorIcon';
 
 const POULTRY_PRODUCTS = [
     "McCrispy Fillet",

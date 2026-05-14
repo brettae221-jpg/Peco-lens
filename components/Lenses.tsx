@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { analyzeLensScan } from '../services/geminiService';
 
-type LensView = 'menu' | 'ar' | 'poultry' | 'megajet' | 'grasselli' | 'vision' | 'thermal' | 'calibration';
+type LensView = 'menu' | 'ar' | 'poultry' | 'megajet' | 'grasselli' | 'vision' | 'thermal' | 'calibration' | 'scope';
 
 const Lenses: React.FC = () => {
   const [view, setView] = useState<LensView>('menu');
@@ -55,6 +55,7 @@ const LensMenu: React.FC<{ onSelect: (v: LensView) => void }> = ({ onSelect }) =
     { id: 'vision', name: 'Vision Sys Lens', icon: Zap, color: 'bg-purple-500', machine: 'Sortation Lines' },
     { id: 'thermal', name: 'Thermal Lens', icon: Thermometer, color: 'bg-yellow-500', machine: 'Internal Parts' },
     { id: 'calibration', name: 'Calibration Lens', icon: Target, color: 'bg-slate-600', machine: 'Maintenance Only' },
+    { id: 'scope', name: 'Live Scope', icon: Activity, color: 'bg-indigo-500', machine: 'MJ Motion Diagnostics' },
   ];
 
   return (
@@ -111,6 +112,7 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
       case 'vision': return { name: 'Vision Insight', color: 'text-purple-500', icon: Zap, theme: 'rgba(168, 85, 247, 0.4)' };
       case 'thermal': return { name: 'Thermal Vector', color: 'text-yellow-500', icon: Thermometer, theme: 'rgba(234, 179, 8, 0.4)' };
       case 'calibration': return { name: 'Maintenance Mode', color: 'text-slate-400', icon: Target, theme: 'rgba(148, 163, 184, 0.4)' };
+      case 'scope': return { name: 'Motion Scope AI', color: 'text-indigo-400', icon: Activity, theme: 'rgba(99, 102, 241, 0.4)' };
       default: return { name: 'System', color: 'text-brand-red', icon: Camera, theme: 'rgba(239, 68, 68, 0.4)' };
     }
   };
@@ -293,6 +295,24 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
 
             {/* Neural Grids & Scanning Line */}
             <div className="absolute inset-0 pointer-events-none opacity-20 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px] z-20" />
+            
+            {mode === 'scope' && (
+              <div className="absolute inset-0 pointer-events-none z-30 opacity-40">
+                <div className="absolute inset-x-10 top-1/4 h-px bg-white/20" />
+                <div className="absolute inset-x-10 top-1/2 h-px bg-white/40" />
+                <div className="absolute inset-x-10 top-3/4 h-px bg-white/20" />
+                <div className="absolute inset-y-10 left-1/4 w-px bg-white/20" />
+                <div className="absolute inset-y-10 left-1/2 w-px bg-white/40" />
+                <div className="absolute inset-y-10 left-3/4 w-px bg-white/20" />
+                
+                {/* Waveform simulation elements */}
+                <svg className="absolute inset-0 w-full h-full text-indigo-500/30">
+                  <path d="M0 250 Q 50 200, 100 250 T 200 250 T 300 250 T 400 250" fill="none" stroke="currentColor" strokeWidth="1" className="animate-pulse" />
+                  <path d="M0 300 Q 150 150, 300 300 T 600 300" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="4 4" />
+                </svg>
+              </div>
+            )}
+
             {isScanning && (
                 <div className="absolute inset-x-0 h-1.5 bg-brand-red shadow-[0_0_20px_rgba(239,68,68,0.8)] animate-scan z-30" />
             )}

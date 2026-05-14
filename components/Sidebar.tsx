@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { User, AppView } from '../types';
 import { DashboardIcon } from './icons/DashboardIcon';
 import { SettingsIcon } from './icons/SettingsIcon';
-import { UsersIcon } from './icons/UsersIcon';
+import { UsersIcon } from './UsersIcon';
 import { ClipboardIcon } from './icons/ClipboardIcon';
 import { ClockIcon } from './icons/ClockIcon';
 import { NewspaperIcon } from './icons/NewspaperIcon';
