@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, onSnapshot, serverTimestamp, getDoc, setDoc } from 'firebase/firestore';
 
-export function usePWAUpdate() {
+function usePWAUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [checking, setChecking] = useState(false);
   const [lastRemoteUpdate, setLastRemoteUpdate] = useState<any>(null);
@@ -92,3 +92,35 @@ export function usePWAUpdate() {
 
   return { updateAvailable, checkForUpdates, applyUpdate, checking, lastRemoteUpdate, issueRemoteUpdate };
 }
+
+function useInstallPrompt() {
+  const [installPrompt, setInstallPrompt] = (useState<any>(null));
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setInstallPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const promptInstall = useCallback(async () => {
+    if (!installPrompt) return;
+    
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      setInstallPrompt(null);
+    }
+  }, [installPrompt]);
+
+  return { installPrompt, promptInstall };
+}
+
+export { usePWAUpdate, useInstallPrompt };
