@@ -27,7 +27,8 @@ export function subscribeToModules(onUpdate: (modules: ModuleConfig[]) => void) 
     { id: AppMode.Gallery, label: 'Archive', icon: 'Image', order: 6, visible: true },
     { id: AppMode.Messages, label: 'Comms', icon: 'MessageSquare', order: 7, visible: true },
     { id: AppMode.NewsFeed, label: 'Pulse', icon: 'Newspaper', order: 8, visible: true },
-    { id: AppMode.Settings, label: 'Config', icon: 'Settings', order: 9, visible: true },
+    { id: AppMode.Admin, label: 'Admin', icon: 'ShieldCheck', order: 9, visible: true },
+    { id: AppMode.Settings, label: 'Config', icon: 'Settings', order: 10, visible: true },
   ];
 
   return onSnapshot(q, (snapshot) => {
@@ -57,7 +58,8 @@ export async function getModules(): Promise<ModuleConfig[]> {
     { id: AppMode.Gallery, label: 'Archive', icon: 'Image', order: 6, visible: true },
     { id: AppMode.Messages, label: 'Comms', icon: 'MessageSquare', order: 7, visible: true },
     { id: AppMode.NewsFeed, label: 'Pulse', icon: 'Newspaper', order: 8, visible: true },
-    { id: AppMode.Settings, label: 'Config', icon: 'Settings', order: 9, visible: true },
+    { id: AppMode.Admin, label: 'Admin', icon: 'ShieldCheck', order: 9, visible: true },
+    { id: AppMode.Settings, label: 'Config', icon: 'Settings', order: 10, visible: true },
   ];
 
   try {
