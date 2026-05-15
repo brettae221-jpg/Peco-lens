@@ -26,6 +26,7 @@ import NewsFeed from './components/NewsFeed';
 import DensityCalculator from './components/DensityCalculator';
 import MegajetScope from './components/MegajetScope';
 import ProductTour from './components/ProductTour';
+import InstallScreen from './components/InstallScreen';
 import { AppMode, User, TroubleshootingScenario, TrainingCourse, LogEntry, Blueprint, NewsPost } from './types';
 import { initialTrainingCourses } from './public/trainingCourses';
 import { initialDiagrams } from './initialDiagrams';
@@ -103,6 +104,9 @@ const App: React.FC = () => {
   const [activeMode, setActiveMode] = useState<AppMode>(AppMode.Dashboard);
   const [showTour, setShowTour] = useState(false);
   const [hasNewMessages, setHasNewMessages] = useState(false);
+  const [hasBypassedInstall, setHasBypassedInstall] = useState(() => {
+    return sessionStorage.getItem('install-bypassed') === 'true';
+  });
   
   const [trainingCourses, setTrainingCourses] = useState<TrainingCourse[]>(initialTrainingCourses);
   const [troubleshootingScenarios, setTroubleshootingScenarios] = useState<TroubleshootingScenario[]>([]);
@@ -120,12 +124,18 @@ const App: React.FC = () => {
   }, [logs]);
 
   const handleLogin = (loggedInUser: Omit<User, 'password'>) => {
-    // Force AI Chat into accessible modes for Admins if missing
-    if (loggedInUser.role === 'Admin' && loggedInUser.accessibleModes && !loggedInUser.accessibleModes.includes(AppMode.AIChat)) {
-        loggedInUser = {
-            ...loggedInUser,
-            accessibleModes: [...loggedInUser.accessibleModes, AppMode.AIChat]
-        };
+    // Force AI Chat and Admin into accessible modes for Admins if missing
+    if (loggedInUser.role === 'Admin') {
+        const adminModes = [AppMode.AIChat, AppMode.Admin];
+        const currentModes = loggedInUser.accessibleModes || [];
+        const missingModes = adminModes.filter(m => !currentModes.includes(m));
+        
+        if (missingModes.length > 0) {
+            loggedInUser = {
+                ...loggedInUser,
+                accessibleModes: [...currentModes, ...missingModes]
+            };
+        }
     }
     
     setUser(loggedInUser);
@@ -230,6 +240,11 @@ const App: React.FC = () => {
     );
   }
 
+  const handleBypassInstall = () => {
+    setHasBypassedInstall(true);
+    sessionStorage.setItem('install-bypassed', 'true');
+  };
+
   const getContextLabel = () => {
     switch (activeMode) {
       case AppMode.Dashboard: return 'Core Command';
@@ -255,6 +270,13 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col h-screen bg-slate-950 overflow-hidden font-sans antialiased text-slate-200">
       
+      {/* Install Prompt Overlay */}
+      <AnimatePresence>
+        {!hasBypassedInstall && (
+          <InstallScreen onBypass={handleBypassInstall} />
+        )}
+      </AnimatePresence>
+
       {/* Product Tour */}
       <AnimatePresence>
         {showTour && user && (
