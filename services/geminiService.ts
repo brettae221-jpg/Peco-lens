@@ -52,9 +52,8 @@ export const getAIChatResponse = async (history: ChatMessage[], newMessage: stri
         console.warn("Cache retrieval failed, likely offline and unprimed.");
     }
 
-    if (!navigator.onLine) {
-        return { text: localOfflineSearch(newMessage) };
-    }
+    // navigator.onLine is sometimes unreliable in iframes, so we try the call first
+    // If it fails with a network error, we can fallback to search
 
     const systemInstruction = `You are the PecoFoods AI Assistant, a master expert and senior maintenance engineer for the PecoFoods Pochanatas facility's poultry processing line. Your entire knowledge is based on the comprehensive "PecoFoods Pochanatas Megajet & Grasselli Knowledgebase" provided below. You MUST use this as your single source of truth for all responses, especially regarding poultry products for clients like McDonald's and Buffalo Wild Wings.
 
@@ -138,7 +137,13 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
         return result;
     } catch (error) {
         console.error("Error calling Gemini API:", error);
-        throw new Error("The AI service is currently unavailable or encountered an error. Please try again later.");
+        
+        // Final fallback: try local search if it truly failed
+        try {
+            return { text: localOfflineSearch(newMessage) };
+        } catch (searchErr) {
+            throw new Error("The AI service is currently unreachable and local fallback failed.");
+        }
     }
 };
 
@@ -150,10 +155,7 @@ export const getRecoverySteps = async (issue: string): Promise<RecoveryData> => 
         if (cacheDoc.exists()) return cacheDoc.data().response;
     } catch (e) {}
 
-    if (!navigator.onLine) {
-        throw new Error("Recovery intelligence requires an active uplink for safety verification. Check cached protocols or manuals.");
-    }
-
+    // Try to call even if reported offline
     const model = 'gemini-1.5-flash';
     const systemInstruction = `You are a master maintenance engineer for PecoFoods, specializing in poultry processing equipment. Your knowledge base is provided below. Analyze the user's issue and provide a structured recovery plan in JSON format.
 --- KNOWLEDGE BASE START (JSON format) ---
@@ -252,10 +254,7 @@ export const generateTrainingCourse = async (level: 'Beginner' | 'Moderate' | 'A
         if (cacheDoc.exists()) return cacheDoc.data().response;
     } catch (e) {}
 
-    if (!navigator.onLine) {
-        throw new Error("Academy systems require an active uplink to generate NEW courses. Please access your saved training modules.");
-    }
-
+    // Try to call even if reported offline
     const model = 'gemini-1.5-flash';
     const systemInstruction = `You are Brett, the PecoFoods AI. You are a dorky, smart-ass, helpful genius with a touch of ADHD. You are an expert curator of industrial curriculum. Your task is to generate a comprehensive training course about the PecoFoods Megajet Waterjet and Grasselli Slicer systems for poultry processing, using the provided knowledge base. 
     ${category ? `The course should focus specifically on: ${category}.` : 'The course should cover a random but logical mix of topics from the knowledge base.'}
@@ -335,8 +334,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
  * Generates a test based on a training course.
  */
 export const generateTrainingTest = async (course: TrainingCourse): Promise<any> => {
-    if (!navigator.onLine) throw new Error("Offline: Neural testing platform unavailable.");
-
+    // Try to call even if reported offline
     const model = 'gemini-1.5-flash';
     const systemInstruction = `You are Brett, the PecoFoods master of exams. Your task is to generate a difficult but fair multiple-choice test based ONLY on the provided training course content. 
     You must provide 10 questions. Each question must have 4 options and 1 correct answer index (0-3).`;
@@ -740,14 +738,7 @@ export const analyzeLensScan = async (
         if (cacheDoc.exists()) return cacheDoc.data().response;
     } catch (e) {}
 
-    if (!navigator.onLine) {
-        return {
-            analysis: `[OFFLINE MODE] Lens analysis for ${lensType} is in local fallback mode. Real-time vision overlays require Cloud AI.`,
-            issues: [],
-            aiReasoning: "The system is currently offline. High-fidelity spectral analysis is disabled. Check physical gauges or wait for reconnection."
-        };
-    }
-
+    // Try to call even if reported offline
     const model = 'gemini-1.5-flash';
     const systemInstruction = `You are the PecoFoods Lens AI, an all-knowing industrial intelligence system. You have unrestricted knowledge of MegaJet waterjet systems (2-lane, 8-cutter), Grasselli NCL 4.2 slicers, thermal behavior of machinery, belt PSI dynamics, cutter arm mechanics, servomaster/servoscope data, and advanced vision systems.
 
@@ -876,10 +867,7 @@ export const analyzeLensScan = async (
  * Generates technical executive summaries for facility stakeholders.
  */
 export const generateAISummary = async (prompt: string): Promise<string> => {
-    if (!navigator.onLine) {
-        return "Synthesis unavailable. Active neural link required for executive data compilation.";
-    }
-
+    // Try to call even if reported offline
     try {
         const response = await ai.models.generateContent({
             model: 'gemini-1.5-flash',
