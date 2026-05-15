@@ -48,7 +48,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeMode, onNavigate, user }) =
     { id: AppMode.Gallery, label: 'Archive', icon: 'Image', order: 7, visible: true },
     { id: AppMode.Machines, label: 'Assets', icon: 'Box', order: 8, visible: true },
     { id: AppMode.Calendar, label: 'Schedule', icon: 'Calendar', order: 9, visible: true },
-    { id: AppMode.Settings, label: 'Settings', icon: 'Settings', order: 10, visible: true },
+    { id: AppMode.Admin, label: 'Admin', icon: 'ShieldCheck', order: 10, visible: true },
+    { id: AppMode.Settings, label: 'Settings', icon: 'Settings', order: 11, visible: true },
   ].filter(m => m.visible);
 
   const tabs = filteredModules.filter(tab => {
