@@ -103,7 +103,9 @@ const AdminMenu: React.FC<AdminMenuProps> = ({ user }) => {
         AppMode.Dashboard,
         AppMode.Lenses,
         AppMode.Tools,
-        AppMode.Maintenance
+        AppMode.Maintenance,
+        AppMode.NewsFeed,
+        AppMode.AIChat
     ]);
 
     const menuItems = [
@@ -301,7 +303,7 @@ const AdminMenu: React.FC<AdminMenuProps> = ({ user }) => {
                     className="px-6 py-2.5 bg-brand-red rounded-full text-white text-[10px] font-black uppercase tracking-widest flex items-center shadow-2xl"
                 >
                     <UserPlus className="h-4 w-4 mr-2" />
-                    INIT_NODE
+                    INIT_NEW_USER
                 </motion.button>
             )}
             {view === 'logs' && (
