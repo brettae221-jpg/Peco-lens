@@ -142,11 +142,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
   };
 
   const stories = [
-    { name: 'Your Connect', online: true, color: 'bg-brand-red' },
-    { name: 'Facility A', online: true, color: 'bg-emerald-500' },
-    { name: 'Shift B', online: false, color: 'bg-blue-500' },
-    { name: 'AI Node', online: true, color: 'bg-indigo-500' },
-    { name: 'Maintenance', online: true, color: 'bg-orange-500' },
+    { name: 'Your Link', online: true, color: 'bg-brand-red' },
+    { name: 'Server A', online: true, color: 'bg-emerald-500' },
+    { name: 'Node B', online: false, color: 'bg-blue-500' },
+    { name: 'AI Sync', online: true, color: 'bg-indigo-500' },
+    { name: 'Help Desk', online: true, color: 'bg-orange-500' },
   ];
 
   return (
@@ -160,7 +160,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
           <div className="flex items-center space-x-4">
             <p className="text-slate-500 font-bold uppercase text-[9px] tracking-widest flex items-center">
               <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-brand-red animate-ping'} mr-2`} />
-              {isOnline ? 'Synchronized Neural Activity' : 'Neural Link Segmented - Offline Mode'}
+              {isOnline ? 'Network Connected & Synchronized' : 'Offline Mode - Check Internet'}
             </p>
             <button 
               onClick={() => onNavigate(AppMode.NewsFeed)}
@@ -312,7 +312,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
                        </button>
                        <button className="flex items-center space-x-2 text-slate-500 hover:text-blue-500 transition-colors">
                           <MessageCircle className="h-5 w-5" />
-                          <span className="text-[10px] font-black uppercase tracking-widest">Neural Link</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest">Post Reply</span>
                        </button>
                     </div>
                   </div>

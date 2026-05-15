@@ -72,7 +72,7 @@ const Settings: React.FC<SettingsProps> = ({ user }) => {
 
     const menuItems = [
       { id: 'profile', name: 'Profile Matrix', icon: UserIcon, color: 'bg-blue-600', submenus: ['Basic Info', 'Security', 'Role Access', 'Activity Log'] },
-      { id: 'connectivity', name: 'Neural Link', icon: Wifi, color: 'bg-emerald-600', submenus: ['WiFi Setup', 'Neural Link', 'Cloud Sync', 'Bluetooth'] },
+      { id: 'connectivity', name: 'Network & Connectivity', icon: Wifi, color: 'bg-emerald-600', submenus: ['Status', 'Cloud Sync', 'Bluetooth'] },
       { id: 'app', name: 'Interface Settings', icon: SettingsIcon, color: 'bg-brand-red', submenus: ['Theme', 'Language', 'Cache', 'Reset Factory'] },
       { id: 'software', name: 'Core Engine', icon: RefreshCcw, color: 'bg-indigo-600', submenus: ['Software Update', 'Kernel Version', 'Rollback'] },
       { id: 'install', name: 'Deployment', icon: Download, color: 'bg-purple-600', submenus: ['Install PWA', 'Android APK', 'iOS Config'] },
@@ -143,7 +143,7 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                         </div>
                     </div>
                 );
-            case 'WiFi Setup':
+            case 'Status':
                 const isOnline = typeof window !== 'undefined' ? window.navigator.onLine : true;
                 return (
                     <div className="space-y-6">
@@ -151,19 +151,19 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                             <div className="flex items-center space-x-3 mb-4">
                                 <Wifi className={`h-5 w-5 ${isOnline ? 'text-emerald-500' : 'text-brand-red'}`} />
                                 <span className={`${isOnline ? 'text-emerald-500' : 'text-brand-red'} text-[10px] font-black uppercase tracking-widest`}>
-                                    {isOnline ? 'Active Connection' : 'Neural Link Severed'}
+                                    {isOnline ? 'Internet Uplink Active' : 'Internet Disconnected'}
                                 </span>
                             </div>
                             <h4 className="text-white text-xl font-black uppercase mb-2">
-                                {isOnline ? 'Internet Uplink Active' : 'Offline Mode'}
+                                {isOnline ? 'Direct Web Connectivity' : 'Offline Mode'}
                             </h4>
                             <p className="text-slate-400 text-xs font-bold uppercase tracking-widest opacity-60">
-                                {isOnline ? 'Status: Web Synchronized' : 'Status: Local Buffer Only'}
+                                {isOnline ? 'Status: Full Online Access' : 'Status: Local Cache Restricted'}
                             </p>
                         </div>
                         <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
                             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
-                                The app is currently using your device's primary internet connection.
+                                The app uses your device's standard internet connection (WiFi or Cellular) to sync data and communicate with the PecoFoods Cloud AI.
                             </p>
                         </div>
                     </div>
