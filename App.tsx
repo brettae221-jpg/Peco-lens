@@ -50,21 +50,21 @@ const initializeUsers = async () => {
     }
     
     try {
-            const usersSnap = await getDocs(collection(db, 'users'));
-            if (usersSnap.empty) {
-                console.log('INIT: Provisioning initial admin nodes...');
-                for (const user of staticUsers) {
-                    const userRef = doc(collection(db, 'users'));
-                    await setDoc(userRef, {
-                        ...user,
-                        firstLogin: false,
-                        accessibleModes: Object.values(AppMode)
-                    });
-                }
+        const usersSnap = await getDocs(collection(db, 'users'));
+        if (usersSnap.empty) {
+            console.log('INIT: Provisioning initial admin nodes...');
+            for (const user of staticUsers) {
+                const userRef = doc(collection(db, 'users'));
+                await setDoc(userRef, {
+                    ...user,
+                    firstLogin: false,
+                    accessibleModes: Object.values(AppMode)
+                });
             }
-        } catch (listError) {
-            console.warn('INIT_WARN: Could not verify users list (possible rules restriction)', listError);
         }
+    } catch (listError) {
+        console.warn('INIT_WARN: Could not verify users list (possible rules or auth restriction)', listError);
+    }
 };
 
 const App: React.FC = () => {
@@ -73,12 +73,18 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
+      // Basic check for config
       if (!auth || !db) {
         setIsFirebaseError(true);
         return;
       }
-      await initializeUsers();
-      setIsFirebaseReady(true);
+
+      // We attempt initialization but don't wait indefinitely if it hangs
+      initializeUsers().catch(err => {
+        console.warn("Init background failure", err);
+      }).finally(() => {
+        setIsFirebaseReady(true);
+      });
     };
     init();
   }, []);
