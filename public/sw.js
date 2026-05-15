@@ -73,8 +73,10 @@ self.addEventListener('fetch', event => {
             return response;
           }
         ).catch(() => {
-          // If network fails and no cache, return offline fallback if needed
-          // For now just fail
+  // If both network and cache fail, return the offline page or index
+  return caches.match('/index.html'); 
+});
+
         });
       })
   );
