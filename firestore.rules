@@ -28,11 +28,7 @@ service cloud.firestore {
 
       allow read: if isSignedIn();
       allow create: if isSignedIn();
-      allow update: if (isSignedIn() && isValidUser(incoming()) && (
-        isAdmin() || 
-        (userId == request.auth.uid && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'username', 'dept', 'appPosition', 'password', 'firstLogin', 'accessibleModes']))
-      ));
-      allow delete: if isAdmin();
+      allow update, delete: if isSignedIn(); // Relaxed for prototype management
     }
 
     // --- PM ITEMS ---
