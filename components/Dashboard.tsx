@@ -50,6 +50,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
   const [posts, setPosts] = useState<NewsPost[]>([]);
   const [statusText, setStatusText] = useState('');
   const [isPosting, setIsPosting] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof window !== 'undefined' ? window.navigator.onLine : true);
+
+  useEffect(() => {
+      const handleStatus = () => setIsOnline(window.navigator.onLine);
+      window.addEventListener('online', handleStatus);
+      window.addEventListener('offline', handleStatus);
+      return () => {
+          window.removeEventListener('online', handleStatus);
+          window.removeEventListener('offline', handleStatus);
+      };
+  }, []);
 
   useEffect(() => {
     const q = query(collection(db, 'news_feed'), orderBy('timestamp', 'desc'), limit(50));
@@ -148,8 +159,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, onNavigate }) => {
           </h2>
           <div className="flex items-center space-x-4">
             <p className="text-slate-500 font-bold uppercase text-[9px] tracking-widest flex items-center">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse mr-2" />
-              Synchronized Neural Activity
+              <span className={`h-2 w-2 rounded-full ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-brand-red animate-ping'} mr-2`} />
+              {isOnline ? 'Synchronized Neural Activity' : 'Neural Link Segmented - Offline Mode'}
             </p>
             <button 
               onClick={() => onNavigate(AppMode.NewsFeed)}

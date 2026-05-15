@@ -144,23 +144,27 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                     </div>
                 );
             case 'WiFi Setup':
+                const isOnline = typeof window !== 'undefined' ? window.navigator.onLine : true;
                 return (
                     <div className="space-y-6">
-                        <div className="p-8 bg-emerald-500/10 border border-emerald-500/20 rounded-[2.5rem]">
+                        <div className={`p-8 ${isOnline ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-brand-red/10 border-brand-red/20'} rounded-[2.5rem]`}>
                             <div className="flex items-center space-x-3 mb-4">
-                                <Wifi className="h-5 w-5 text-emerald-500" />
-                                <span className="text-emerald-500 text-[10px] font-black uppercase tracking-widest">Active Connection</span>
+                                <Wifi className={`h-5 w-5 ${isOnline ? 'text-emerald-500' : 'text-brand-red'}`} />
+                                <span className={`${isOnline ? 'text-emerald-500' : 'text-brand-red'} text-[10px] font-black uppercase tracking-widest`}>
+                                    {isOnline ? 'Active Connection' : 'Neural Link Severed'}
+                                </span>
                             </div>
-                            <h4 className="text-white text-xl font-black uppercase mb-2">Facility_G-Network_04</h4>
-                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest opacity-60">Status: Synchronized (94Mbps)</p>
+                            <h4 className="text-white text-xl font-black uppercase mb-2">
+                                {isOnline ? 'Internet Uplink Active' : 'Offline Mode'}
+                            </h4>
+                            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest opacity-60">
+                                {isOnline ? 'Status: Web Synchronized' : 'Status: Local Buffer Only'}
+                            </p>
                         </div>
-                        <div className="grid grid-cols-1 gap-2">
-                            {['Guest_Access', 'Machine_Backbone', 'Admin_Neural_Link'].map(net => (
-                                <button key={net} className="w-full p-6 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/10 transition-all">
-                                    <span className="text-white font-black text-[10px] uppercase tracking-widest">{net}</span>
-                                    <Lock className="h-4 w-4 text-slate-700" />
-                                </button>
-                            ))}
+                        <div className="p-4 bg-white/5 rounded-2xl border border-white/5">
+                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">
+                                The app is currently using your device's primary internet connection.
+                            </p>
                         </div>
                     </div>
                 );
