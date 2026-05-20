@@ -74,18 +74,14 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      // Basic check for config
-      if (!auth || !db) {
-        setIsFirebaseError(true);
-        return;
+      // Background initialization
+      setIsFirebaseReady(true);
+      
+      if (auth && db) {
+        initializeUsers().catch(err => {
+          console.warn("Peco Init background handshake fault:", err);
+        });
       }
-
-      // We attempt initialization but don't wait indefinitely if it hangs
-      initializeUsers().catch(err => {
-        console.warn("Init background failure", err);
-      }).finally(() => {
-        setIsFirebaseReady(true);
-      });
     };
     init();
   }, []);

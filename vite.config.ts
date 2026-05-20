@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
     const geminiKey = env.VITE_GEMINI_API_KEY || env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
     
     return {
-      base: './', 
+      base: '/', 
       server: {
         port: 3000,
         host: '0.0.0.0',
