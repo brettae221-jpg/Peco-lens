@@ -53,7 +53,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ activeMode, onNavigate, user }) =
   ].filter(m => m.visible);
 
   const tabs = filteredModules.filter(tab => {
-    // If accessibleModes is not defined (legacy/admin default), show all
+    // Admins have complete operational system access unhindered.
+    if (user.role === 'Admin') return true;
+    // If accessibleModes is not defined, show all
     if (!user.accessibleModes) return true;
     // Otherwise check if mode is included
     return user.accessibleModes.includes(tab.id);

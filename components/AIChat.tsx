@@ -15,7 +15,7 @@ import {
   VolumeX,
   Share2
 } from 'lucide-react';
-import { GoogleGenAI } from "@google/genai";
+import { getAIChatResponse } from '../services/geminiService';
 import { PECOFOODS_KNOWLEDGE_BASE_STRING } from '../megajetKnowledge';
 import Markdown from 'react-markdown';
 import { db } from '../firebase';
@@ -157,54 +157,22 @@ const AIChat: React.FC<AIChatProps> = ({ user }) => {
     setIsTyping(true);
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      
-      const contents: any[] = [];
-      if (image) {
-        const base64Data = image.split(',')[1];
-        contents.push({
-          parts: [
-            { inlineData: { mimeType: "image/jpeg", data: base64Data } },
-            { text: currentInput || "Analyze this image for any mechanical issues on a MegaJet or Grasselli machine." }
-          ]
-        });
-      } else {
-        contents.push({
-          parts: [{ text: currentInput }]
-        });
-      }
-
-      const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: messages.length > 0 
-            ? [...messages.slice(-5).map(m => ({ role: m.role, parts: [{ text: m.text }] })), { parts: contents[0].parts }]
-            : contents,
-        config: {
-          systemInstruction: `You are Brett, an advanced industrial AI for PecoFoods. 
-          Current Neural Tuning:
-          - Smart-assness: ${personalitySettings.smartAssness}% (higher means more witty/sarcastic)
-          - Helpfulness: ${personalitySettings.helpfulness}%
-          - ADHD/Focus Drift: ${personalitySettings.adhdLevel}% (higher means more distractible/nerdy tangents)
-          - Technical Depth: ${personalitySettings.technicalDepth}% (higher means more heavy jargon)
-
-          Your identity is a "witty industrial genius". You are extremely knowledgeable about MegaJet Waterjets and Grasselli Slicers.
-          
-          Knowledge base summary: ${PECOFOODS_KNOWLEDGE_BASE_STRING}
-          
-          Directives:
-          - Assist with technical troubleshooting.
-          - Use jargon like McCrispy, BWW, LOTO, WAGO, Modbus.
-          - If Smart-assness is high, be witty and slightly cheeky about machine failures.
-          - If ADHD is high, occasionally mention a distractible nerdy fact about poultry processing or engineering before getting back to the answer.
-          - Safety First: Always mention LOTO when talking about maintenance.
-          `,
-        }
-      });
+      const result = await getAIChatResponse(
+        messages.slice(-5).map(m => ({
+          role: m.role,
+          text: m.text,
+          timestamp: m.timestamp,
+          senderEmail: m.role === 'model' ? 'ai@pecofoods.com' : user.email
+        } as any)),
+        currentInput,
+        image ? { mimeType: "image/jpeg", data: image } : null,
+        personalitySettings
+      );
 
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: response.text || "I'm having a brain fart... wait, try that again.",
+        text: result.text || "I'm having a brain fart... wait, try that again.",
         timestamp: new Date()
       };
 

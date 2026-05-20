@@ -348,6 +348,32 @@ Please provide your repository endpoint to the DevOps controller to trigger a bi
                         </div>
                     </div>
                 );
+            case 'Rollback':
+                return (
+                    <div className="space-y-6">
+                        <div className="bg-white/5 p-8 rounded-[2.5rem] border border-white/5">
+                            <h4 className="text-white font-black uppercase tracking-tight mb-4">Rollback Recovery System</h4>
+                            <p className="text-slate-400 text-xs leading-relaxed mb-6">
+                                If the current core version encounters behavioral bugs or connection drift, you can rollback to the prior certified release (v2.0.3-STABLE).
+                            </p>
+                            <div className="flex justify-between items-center py-4 border-b border-white/5 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                <span>Target Version</span>
+                                <span className="text-white">v2.0.3-STABLE</span>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    if (window.confirm("SYSTEM_WARNING: Confirm rollback sequence to v2.0.3-STABLE? All modules will refresh.")) {
+                                        alert("Rollback sequence initialized... System will reboot.");
+                                        window.location.reload();
+                                    }
+                                }}
+                                className="w-full mt-6 py-4 bg-brand-red/20 hover:bg-brand-red border border-brand-red/30 text-brand-red hover:text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                            >
+                                Initiate Version Rollback
+                            </button>
+                        </div>
+                    </div>
+                );
             default:
                 return (
                     <div className="flex flex-col items-center justify-center py-20 opacity-20">

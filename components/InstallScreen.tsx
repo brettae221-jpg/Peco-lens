@@ -10,7 +10,6 @@ interface InstallScreenProps {
 const InstallScreen: React.FC<InstallScreenProps> = ({ onBypass }) => {
     const { installPrompt, promptInstall } = useInstallPrompt();
     const [isInstalled, setIsInstalled] = useState(false);
-    const [showBypass, setShowBypass] = useState(false);
 
     useEffect(() => {
         const checkInstalled = () => {
@@ -18,10 +17,6 @@ const InstallScreen: React.FC<InstallScreenProps> = ({ onBypass }) => {
             setIsInstalled(isPWA);
         };
         checkInstalled();
-        
-        // Show bypass after 5 seconds if they are stuck
-        const timer = setTimeout(() => setShowBypass(true), 5000);
-        return () => clearTimeout(timer);
     }, []);
 
     if (isInstalled) return null;
@@ -95,15 +90,12 @@ const InstallScreen: React.FC<InstallScreenProps> = ({ onBypass }) => {
                             </div>
                         )}
 
-                        {showBypass && (
-                            <button
-                                onClick={onBypass}
-                                className="w-full py-4 text-slate-600 hover:text-slate-400 font-black text-[9px] uppercase tracking-[0.4em] transition-colors flex items-center justify-center space-x-2"
-                            >
-                                <span>Bypass Infrastructure (Not Recommended)</span>
-                                <ArrowRight className="h-3 w-3" />
-                            </button>
-                        )}
+                        <button 
+                            onClick={onBypass}
+                            className="w-full py-4 text-[8px] font-black text-slate-700 uppercase tracking-[0.4em] hover:text-slate-400 transition-colors"
+                        >
+                            Continue in Browser (Not Recommended)
+                        </button>
                     </div>
                 </motion.div>
 

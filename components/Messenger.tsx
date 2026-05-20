@@ -280,6 +280,23 @@ const Messenger: React.FC<MessengerProps> = ({ user }) => {
                 )}
                 {threads.map(thread => {
                     const otherUser = thread.participants.find(p => p !== user.email);
+                    const formatTimestamp = (ts: any) => {
+                        if (!ts) return '';
+                        try {
+                            if (typeof ts.toDate === 'function') {
+                                return ts.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            }
+                            if (ts instanceof Date) {
+                                return ts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            }
+                            if (typeof ts.seconds === 'number') {
+                                return new Date(ts.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                            }
+                            return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        } catch (_) {}
+                        return '';
+                    };
+                    
                     return (
                         <motion.button
                             key={thread.id}
@@ -293,7 +310,7 @@ const Messenger: React.FC<MessengerProps> = ({ user }) => {
                                 <div className="flex items-center justify-between mb-1">
                                     <h4 className="text-lg font-black text-white truncate uppercase tracking-tight">{otherUser?.split('@')[0]}</h4>
                                     <span className="text-[8px] font-black text-slate-600">
-                                        {thread.lastTimestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {formatTimestamp(thread.lastTimestamp)}
                                     </span>
                                 </div>
                                 <p className="text-slate-500 font-bold text-sm truncate uppercase tracking-wide">

@@ -61,6 +61,13 @@ const TrainingMode: React.FC<TrainingModeProps> = ({ user }) => {
     ];
 
     useEffect(() => {
+        fetchResults();
+        if (user.role === 'Admin') {
+            fetchTeamResults().catch(console.error);
+        }
+    }, []);
+
+    useEffect(() => {
         if (view === 'records') {
             fetchResults();
             if (user.role === 'Admin') fetchTeamResults();
@@ -164,7 +171,7 @@ const TrainingMode: React.FC<TrainingModeProps> = ({ user }) => {
                 userName: user.name || user.username || 'System Student',
                 userEmail: user.email,
                 type: 'test_complete',
-                textContent: `has conquered the "${test!.courseTitle}" test with a score of ${percentage}%. Certification tier updated.`,
+                textContent: `has conquered the "${test!.courseTitle}" test with a score of ${percentage}%. Dynamic course Badge updated! 🏅`,
                 metadata: {
                     courseTitle: test!.courseTitle,
                     testScore: percentage
@@ -175,6 +182,22 @@ const TrainingMode: React.FC<TrainingModeProps> = ({ user }) => {
         }
     };
 
+    // Badge checker
+    const isBadgeUnlocked = (level: string) => {
+        // Brett (bedwards) automatically owns ALL system badges!
+        const isBrettAdmin = user.email === 'brettae406@gmail.com' || user.username === 'bedwards' || user.email?.startsWith('bedwards');
+        if (isBrettAdmin) return true;
+        
+        return results.some(r => r.difficulty?.toLowerCase() === level.toLowerCase() && r.percentage >= 80);
+    };
+
+    const badgeCards = [
+        { id: 'beginner', title: 'Beginner Safety Medal', desc: 'Secure plant boundaries & high-PSI line lockout.', color: 'from-emerald-500/20 to-teal-500/10', textCol: 'text-emerald-400', strokeCol: 'border-emerald-500/30', glow: 'shadow-[0_0_20px_rgba(16,185,129,0.3)]', icon: BookOpen },
+        { id: 'moderate', title: 'Moderate Calibration Medal', desc: 'Volumetric belt synchronization & height sweep logic.', color: 'from-amber-500/20 to-yellow-500/10', textCol: 'text-amber-400', strokeCol: 'border-amber-500/30', glow: 'shadow-[0_0_20px_rgba(245,158,11,0.3)]', icon: Zap },
+        { id: 'advanced', title: 'Advanced Diagnostic Medal', desc: 'Fourier noise harmonics & high-speed vibration analysis.', color: 'from-orange-600/20 to-red-500/10', textCol: 'text-brand-red', strokeCol: 'border-brand-red/30', glow: 'shadow-[0_0_20px_rgba(220,38,38,0.3)]', icon: BrainCircuit },
+        { id: 'expert', title: 'Expert System Master Badge', desc: 'Total line override status & neural calibration validation.', color: 'from-fuchsia-600/20 to-purple-650/10', textCol: 'text-purple-400', strokeCol: 'border-purple-500/30', glow: 'shadow-[0_0_20px_rgba(168,85,247,0.3)]', icon: Trophy }
+    ];
+
     if (view === 'result') {
         const score = testScore || 0;
         const total = test?.questions.length || 10;
@@ -183,15 +206,15 @@ const TrainingMode: React.FC<TrainingModeProps> = ({ user }) => {
         return (
             <div className="h-full bg-slate-950 flex flex-col items-center justify-center p-8 space-y-8 animate-in fade-in duration-500">
                 <div className={`p-10 rounded-[3rem] ${percent >= 80 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-brand-red/10 text-brand-red'} border border-current/20 flex flex-col items-center`}>
-                    {percent >= 80 ? <Trophy className="h-16 w-16 mb-4" /> : <AlertCircle className="h-16 w-16 mb-4" />}
+                    {percent >= 80 ? <Trophy className="h-16 w-16 mb-4 animate-bounce" /> : <AlertCircle className="h-16 w-16 mb-4" />}
                     <h2 className="text-6xl font-black tracking-tighter mb-2">{percent}%</h2>
-                    <p className="text-[10px] font-black uppercase tracking-widest">{percent >= 80 ? 'Test Passed - Skill Unlocked' : 'Test Failed - Needs Review'}</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest">{percent >= 80 ? 'Badge Earned! Course Completed' : 'Target Threshold Failed - Review Material'}</p>
                 </div>
                 <div className="text-center space-y-2">
                     <h3 className="text-2xl font-black text-white uppercase tracking-tight">{test?.courseTitle}</h3>
-                    <p className="text-slate-500 font-medium">Neural verification complete. Result broadcast to facility feed.</p>
+                    <p className="text-slate-500 font-medium">Earned badges are permanently synced to your operator profile key.</p>
                 </div>
-                <button onClick={() => setView('menu')} className="px-12 py-4 bg-white/5 border border-white/5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white/10 transition-all">Return to Hub</button>
+                <button onClick={() => setView('menu')} className="px-12 py-4 bg-white/5 border border-white/5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-white/10 transition-all">Return to Academy Hub</button>
             </div>
         );
     }
@@ -418,8 +441,8 @@ const TrainingMode: React.FC<TrainingModeProps> = ({ user }) => {
         <div className="h-full bg-slate-950 flex flex-col p-8 pb-32 overflow-y-auto no-scrollbar">
             <div className="mb-12 flex items-end justify-between">
                 <div>
-                    <h2 className="text-5xl font-black text-white mb-2 tracking-tighter uppercase tracking-tight">System <span className="text-brand-red">Curriculum</span></h2>
-                    <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em]">Knowledge Base Expansion Layers</p>
+                    <h2 className="text-5xl font-black text-white mb-2 tracking-tighter uppercase tracking-tight">System <span className="text-brand-red">Academy</span></h2>
+                    <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.3em]">Knowledge Base & Badge Expansion Layers</p>
                 </div>
                 <button 
                   onClick={() => setView('records')}
@@ -430,7 +453,21 @@ const TrainingMode: React.FC<TrainingModeProps> = ({ user }) => {
                 </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Floating Gold Header for Brettae406 or bedwards with admin override */}
+            {(user.email === 'brettae406@gmail.com' || user.username === 'bedwards' || user.email?.startsWith('bedwards')) && (
+                <div className="mb-10 bg-gradient-to-r from-yellow-500/20 via-amber-500/15 to-transparent border border-yellow-500/30 p-8 rounded-[2.5rem] flex items-center space-x-6">
+                    <div className="h-16 w-16 rounded-2xl bg-yellow-500/10 flex items-center justify-center text-yellow-500 border border-yellow-500/20 shadow-2xl shrink-0">
+                        <Trophy className="h-8 w-8 animate-pulse text-yellow-400" />
+                    </div>
+                    <div>
+                        <h4 className="text-white font-black uppercase tracking-tight text-lg">Master Administrator Brett Verified</h4>
+                        <p className="text-yellow-400 font-bold uppercase text-[9px] tracking-widest mt-1">Super-user override active: All Master training badges automatically unlocked & authorized.</p>
+                    </div>
+                </div>
+            )}
+
+            {/* Training Route Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                 {views.map(item => (
                     <motion.button
                         key={item.id}
@@ -451,6 +488,44 @@ const TrainingMode: React.FC<TrainingModeProps> = ({ user }) => {
                         </div>
                     </motion.button>
                 ))}
+            </div>
+
+            {/* Badge Achievements Grid */}
+            <div className="mt-8 border-t border-white/5 pt-12">
+                <div className="mb-8 pl-2">
+                    <h3 className="text-2xl font-black text-white uppercase tracking-tight">MY COMPLETED BADGES</h3>
+                    <p className="text-slate-500 font-bold text-[10px] uppercase tracking-widest mt-2">Earned achievements for scoring 80% or greater on course assessments</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {badgeCards.map((badge) => {
+                        const unlocked = isBadgeUnlocked(badge.id);
+                        const Icon = badge.icon;
+                        return (
+                            <div 
+                                key={badge.id}
+                                className={`relative p-8 rounded-[3.2rem] border transition-all ${unlocked ? `${badge.color} ${badge.strokeCol} ${badge.glow} text-white` : 'bg-white/2 border-white/5 opacity-30 text-slate-500'}`}
+                            >
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className={`p-4 rounded-2xl ${unlocked ? 'bg-white/10' : 'bg-slate-900 border border-white/5'} flex items-center justify-center`}>
+                                        <Icon className={`h-8 w-8 ${unlocked ? badge.textCol : 'text-slate-600'}`} />
+                                    </div>
+                                    <span className={`text-[8px] font-black uppercase tracking-[0.2em] px-3.5 py-1.5 rounded-full ${unlocked ? 'bg-white/10 text-white' : 'bg-slate-900 text-slate-500 border border-white/5'}`}>
+                                        {unlocked ? 'MUTUAL_ACTIVE' : 'LOCKED'}
+                                    </span>
+                                </div>
+                                <h4 className={`text-sm font-black uppercase tracking-tight mb-2 ${unlocked ? 'text-white' : 'text-slate-500'}`}>{badge.title}</h4>
+                                <p className="text-[10px] leading-relaxed text-slate-300 pr-4">{badge.desc}</p>
+
+                                {unlocked && (
+                                    <div className="absolute right-6 bottom-6 animate-pulse">
+                                        <Award className={`h-5 w-5 ${badge.textCol}`} />
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );
