@@ -84,8 +84,12 @@ function usePWAUpdate() {
 
   const applyUpdate = useCallback(() => {
     const registration = (window as any).swRegistration;
-    if (registration?.waiting) {
-      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    if (registration) {
+      if (registration.waiting && typeof registration.waiting.postMessage === 'function') {
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else if (typeof registration.postMessage === 'function') {
+        registration.postMessage({ type: 'SKIP_WAITING' });
+      }
     }
     window.location.reload();
   }, []);

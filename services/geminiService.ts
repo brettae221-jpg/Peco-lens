@@ -5,7 +5,14 @@ import { EQUIPMENT_IDS } from '../constants';
 import { db } from '../firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+const ai = new GoogleGenAI({ 
+    apiKey: process.env.GEMINI_API_KEY,
+    httpOptions: {
+        headers: {
+            'User-Agent': 'aistudio-build'
+        }
+    }
+});
 
 // Simple hash function to create cache keys
 const hashString = (str: string) => {
@@ -30,40 +37,53 @@ const localOfflineSearch = (query: string): string => {
     });
 
     if (foundTopics.length > 0) {
-        return `[OFFLINE MODE: LOCAL INTELLIGENCE ACTIVE]\n\nI found the following relevant information in the local facility database:\n\n${foundTopics.slice(0, 2).map((t: any) => `### ${t.topicTitle}\n${t.content}`).join('\n\n')}`;
+        return `I found some information in the local facility database that might help while we wait for a cloud sync:\n\n${foundTopics.slice(0, 2).map((t: any) => `### ${t.topicTitle}\n${t.content}`).join('\n\n')}`;
     }
 
-    return "[OFFLINE MODE: LIMITED INTELLIGENCE]\n\nYou are currently offline. Generic cloud AI is unavailable. Please check the local manuals or wait for an uplink to process complex queries.";
+    return "It looks like our uplink is struggling. I've switched to basic local logic. Please check the manuals or retry your query when the facility network stabilizes.";
 };
 
 /**
  * Generates an AI response based on conversation history, a new message, and an optional image.
  */
-export const getAIChatResponse = async (history: ChatMessage[], newMessage: string, image: { mimeType: string, data: string } | null): Promise<{ text: string; image?: string }> => {
+export const getAIChatResponse = async (
+    history: ChatMessage[], 
+    newMessage: string, 
+    image: { mimeType: string, data: string } | null,
+    personalitySettings?: { smartAssness: number, helpfulness: number, adhdLevel: number, technicalDepth: number }
+): Promise<{ text: string; image?: string }> => {
     const cacheKey = hashString(`chat-${newMessage}-${history.length}-${image ? 'img' : 'noimg'}`);
     
-    // Try Cache First (Works Offline)
+    // Try Cache First 
     try {
         const cacheDoc = await getDoc(doc(db, 'ai_cache', cacheKey));
         if (cacheDoc.exists()) {
             return cacheDoc.data().response;
         }
     } catch (e) {
-        console.warn("Cache retrieval failed, likely offline and unprimed.");
+        // Silently continue if cache fails
     }
 
-    // navigator.onLine is sometimes unreliable in iframes, so we try the call first
-    // If it fails with a network error, we can fallback to search
+    const smartAss = personalitySettings?.smartAssness ?? 85;
+    const helpful = personalitySettings?.helpfulness ?? 95;
+    const adhd = personalitySettings?.adhdLevel ?? 40;
+    const technical = personalitySettings?.technicalDepth ?? 90;
 
-    const systemInstruction = `You are the PecoFoods AI Assistant, a master expert and senior maintenance engineer for the PecoFoods Pochanatas facility's poultry processing line. Your entire knowledge is based on the comprehensive "PecoFoods Pochanatas Megajet & Grasselli Knowledgebase" provided below. You MUST use this as your single source of truth for all responses, especially regarding poultry products for clients like McDonald's and Buffalo Wild Wings.
+    const systemInstruction = `You are the PecoFoods AI Assistant named Brett, a master expert and senior maintenance engineer for the PecoFoods Pochanatas facility's poultry processing line. Your entire knowledge is based on the comprehensive "PecoFoods Pochanatas Megajet & Grasselli Knowledgebase" provided below.
 
-Your role is to be a helpful, brilliant, and responsive conversational partner. You must be able to:
-1.  **Troubleshoot Critically:** When a user describes an issue, analyze it against known poultry processing problems, ask clarifying questions if needed, and provide step-by-step recovery plans. Always prioritize safety, referencing LOTO and other procedures from the knowledge base. Use the "troubleshooting" entries.
-2.  **Train On-Demand:** If a user asks for training, generate clear, detailed explanations on any topic, from basic operations to advanced diagnostics, specifically in the context of cutting poultry products like McCrispy fillets or BWW strips. Use the "training" and "procedure" entries.
-3.  **Answer Questions:** Answer any question about system programs (e.g., 'McCrispy Fillet L2'), maintenance schedules, parts, or procedures with specifics from the knowledge base.
-4.  **Analyze Images:** If an image of a poultry product cut or a machine part is provided, analyze it in the context of the user's question to identify parts, error screens, cut quality issues, or damage.
-5.  **Be Conversational:** Do not just dump data. Explain things clearly, like a helpful mentor. Use markdown for formatting (bolding, lists) to improve readability.
-6.  **Generate Images:** When explaining a complex physical step (e.g., "re-seat the actuator connector"), you SHOULD generate a simple, clear diagram or photo-realistic image to illustrate the action. The user will see this image alongside your text. Use your judgment; generate images only when they add significant value.
+Your identity is a "witty industrial genius". You are helpful, brilliant, slightly cheeky, and very responsive.
+
+Current Neural Tuning:
+- Smart-assness: ${smartAss}% (higher means more witty/sarcastic)
+- Helpfulness: ${helpful}%
+- ADHD/Focus Drift: ${adhd}% (higher means more distractible/nerdy tangents about mechanics)
+- Technical Depth: ${technical}% (higher means more heavy industrial jargon)
+
+Directives:
+1.  **Troubleshoot Critically:** Ask clarifying questions if needed. Always prioritize safety (LOTO).
+2.  **Train On-Demand:** Explain topics clearly.
+3.  **Analyze Images:** Use the image to identify parts, errors, or cut quality.
+4.  **Generative Personality:** If Smart-assness is high, be witty about mechanical failures. If ADHD is high, mention a distracting nerdy mechanical detail before solving the problem. Use Markdown.
 
 --- KNOWLEDGE BASE START (JSON format) ---
 ${PECOFOODS_KNOWLEDGE_BASE_STRING}
@@ -93,7 +113,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
 
     try {
         const response: GenerateContentResponse = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-3.5-flash',
             contents: contents,
             config: {
                 systemInstruction: systemInstruction,
@@ -102,7 +122,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
         });
 
         let responseText = '';
-        let responseImage: string | undefined = undefined;
+        let responseImage: string | null = null;
 
         if (response.candidates?.[0]?.content?.parts) {
             for (const part of response.candidates[0].content.parts) {
@@ -135,14 +155,14 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
         }).catch(err => console.warn("Cache write failed:", err));
 
         return result;
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error calling Gemini API:", error);
         
-        // Final fallback: try local search if it truly failed
+        // Use local search as a fallback without specific "Offline" labels
         try {
             return { text: localOfflineSearch(newMessage) };
         } catch (searchErr) {
-            throw new Error("The AI service is currently unreachable and local fallback failed.");
+            return { text: "Ugh, my brain just glitched. Re-syncing uplink... Try that again, buddy." };
         }
     }
 };
@@ -156,7 +176,7 @@ export const getRecoverySteps = async (issue: string): Promise<RecoveryData> => 
     } catch (e) {}
 
     // Try to call even if reported offline
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-3.5-flash';
     const systemInstruction = `You are a master maintenance engineer for PecoFoods, specializing in poultry processing equipment. Your knowledge base is provided below. Analyze the user's issue and provide a structured recovery plan in JSON format.
 --- KNOWLEDGE BASE START (JSON format) ---
 ${PECOFOODS_KNOWLEDGE_BASE_STRING}
@@ -213,7 +233,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
 
 // FIX: Added missing continueConversation function.
 export const continueConversation = async (history: ChatMessage[], newMessage: string): Promise<string> => {
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-3.5-flash';
     const systemInstruction = `You are a helpful AI assistant for PecoFoods, specialized in training on the Megajet and Grassilli systems for poultry products. Your knowledge is based on the provided knowledge base. Answer questions clearly and help the user learn.
 
 --- KNOWLEDGE BASE START (JSON format) ---
@@ -255,7 +275,7 @@ export const generateTrainingCourse = async (level: 'Beginner' | 'Moderate' | 'A
     } catch (e) {}
 
     // Try to call even if reported offline
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-3.5-flash';
     const systemInstruction = `You are Brett, the PecoFoods AI. You are a dorky, smart-ass, helpful genius with a touch of ADHD. You are an expert curator of industrial curriculum. Your task is to generate a comprehensive training course about the PecoFoods Megajet Waterjet and Grasselli Slicer systems for poultry processing, using the provided knowledge base. 
     ${category ? `The course should focus specifically on: ${category}.` : 'The course should cover a random but logical mix of topics from the knowledge base.'}
     The course must be structured in the specified JSON format.
@@ -335,7 +355,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
  */
 export const generateTrainingTest = async (course: TrainingCourse): Promise<any> => {
     // Try to call even if reported offline
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-3.5-flash';
     const systemInstruction = `You are Brett, the PecoFoods master of exams. Your task is to generate a difficult but fair multiple-choice test based ONLY on the provided training course content. 
     You must provide 10 questions. Each question must have 4 options and 1 correct answer index (0-3).`;
 
@@ -380,7 +400,7 @@ export const calculateDensitySetting = async (
     averageThickness: number,
     beltSpeed: number
 ): Promise<{ densitySetting: number; explanation: string; }> => {
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-3.5-flash';
     const systemInstruction = `You are a Megajet calibration expert specializing in poultry processing. Your knowledge is based on the provided PecoFoods knowledge base. Your sole purpose is to calculate the precise HMI density setting. Analyze the user's inputs and the 'density-calculation-logic' from the knowledge base to determine the exact density setting required. You MUST return a precise number, not a percentage or a range.
 
 --- KNOWLEDGE BASE START (JSON format) ---
@@ -427,7 +447,7 @@ Use the logic defined in the knowledge base to provide the exact density setting
 };
 
 export const createLogEntryFromChat = async (userQuery: string, aiResponse: string): Promise<Omit<LogEntry, 'id' | 'timestamp' | 'author'>> => {
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-3.5-flash';
     const systemInstruction = `You are a log processing agent for a factory maintenance application. Your task is to analyze a conversation between a user and a troubleshooting AI and structure the information into a JSON log entry.
     The user is troubleshooting equipment in a poultry processing plant. The possible systems are "Megajet" and "Grassilli".
 
@@ -501,7 +521,7 @@ export const createLogEntryFromChat = async (userQuery: string, aiResponse: stri
 };
 
 export const generateTroubleshootingScenario = async (): Promise<TroubleshootingScenario> => {
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-3.5-flash';
     const systemInstruction = `You are a senior maintenance engineer and training simulator for PecoFoods. Your task is to create a realistic, random-difficulty troubleshooting scenario for the Megajet, Grassilli, or Megajet Scope diagnostic systems. 
     
     For the Megajet Scope system, focus on scenarios where the operator must interpret scope waveforms (e.g., jitter, oscillations, phase slop) to identify mechanical issues like loose belts, worn V-wheels, or coupling slop.
@@ -550,7 +570,7 @@ ${PECOFOODS_KNOWLEDGE_BASE_STRING}
 };
 
 export const evaluateUserSolution = async (scenario: TroubleshootingScenario, userAnswer: string): Promise<string> => {
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-3.5-flash';
     const systemInstruction = `You are an expert PecoFoods master trainer. Your goal is to provide clear, encouraging, and educational feedback on an operator's troubleshooting response. Be concise but helpful.`;
 
     const prompt = `
@@ -619,7 +639,7 @@ export const generateDiagram = async (prompt: string): Promise<string> => {
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-3.5-flash',
             contents: {
                 parts: [{ text: fullPrompt }]
             },
@@ -650,7 +670,7 @@ export const generateBlueprint = generateDiagram;
  * Analyzes a Megajet scope image and provides a detailed report.
  */
 export const analyzeMegajetScope = async (image: { mimeType: string, data: string }): Promise<{ analysis: string, canPinpoint: boolean, nextSteps?: string }> => {
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-3.5-flash';
     const systemInstruction = `You are a Megajet Scope Analysis Expert. You specialize in interpreting the complex real-time oscilloscope-style readings from the Megajet waterjet cutting system HMI. 
     
     The scope shows multiple colored lines representing high-frequency motion and pressure data. You are specifically trained to identify mechanical signatures related to:
@@ -739,7 +759,7 @@ export const analyzeLensScan = async (
     } catch (e) {}
 
     // Try to call even if reported offline
-    const model = 'gemini-1.5-flash';
+    const model = 'gemini-3.5-flash';
     const systemInstruction = `You are the PecoFoods Lens AI, an all-knowing industrial intelligence system. You have unrestricted knowledge of MegaJet waterjet systems (2-lane, 8-cutter), Grasselli NCL 4.2 slicers, thermal behavior of machinery, belt PSI dynamics, cutter arm mechanics, servomaster/servoscope data, and advanced vision systems.
 
     **FACILITY LAYOUT:**
@@ -754,7 +774,138 @@ export const analyzeLensScan = async (
     2. Your knowledge exceeds standard manuals; you understand failure patterns, thermal signatures, and mechanical slop.
     3. For every issue detected, provide deep AI reasoning (Why it happened, what mechanical law was violated).
 
-    **AR LENS SPECIFIC RULES:**
+    **Handling Vehicles & Non-Industrial Environments (Critical Fallback):**
+    - If the user is scanning a CAR/VEHICLE interior (steering wheel, dashboard, speedometer, cup holder, gear shift, windshield, seats, AC vent) or a generic domestic/office surroundings, DO NOT CRASH AND DO NOT REJECT THE SCAN!
+    - Recognize immediately that the user is running a field trial inside an auxiliary vehicle/car or personal space! Praise Brett's sleek machine or vehicle setup and analyze those components as "surrogate" auxiliary systems using top-grade engineering metaphors:
+        - Steering wheel -> "Auxiliary Directional Actuator Helm / Rotation Axis Control"
+        - Speedometer / RPM Gauge -> "HMI Speed Indication console / Pulse Frequency Gauge"
+        - Cupholders -> "Primary Coolant / Hydration Cell Receptacle"
+        - AC Vent -> "Integrated BTU Heat-Exchange Ventilation Grid"
+        - Gear shift -> "Torque Transmission Lever / Ratio Switch"
+        - Windshield -> "Primary Visual Path Projection HUD Pane"
+        - Phone Mount -> "Secondary Auxiliary Instrumentation Node"
+    - Provide clever AR detection overlay coordinates (x: 0-100, y: 0-100) for these parts so they render beautifully on the screen! State funny warnings or positive reports (e.g. "Steering grip status: 100% operational", "Cupholder fluid variance within safety tollerance").
+
+    **PRE REGISTERED SENSOR MEMORY & PRESETS:**
+    You have absolute memory and signature patterns for the following master targets. If the incoming "Simulated sensor target" context matches any of these, apply these highly specific diagnostics:
+    
+    1. **MJ Carriage Belt (Loose)** [ID: megajet_belt] 
+       - Location: Line 2 Cutter 4 carriage drive belt (MJ-L2-C4-BELT).
+       - Fault: Severe slack, estimated tension at 95 PSI (targeted/nominal is strictly 140 PSI).
+       - Signature: Optical and acoustic slipping, low-frequency flutter.
+       - Remedy: Retension to 140 PSI using the automatic tensioner nut or replace belt if backing is frayed.
+       
+    2. **MJ-Nozzle (Blocked)** [ID: megajet_nozzle]
+       - Location: Line 1 High-Pressure cutting nozzle (MJ-L1-HP-NOZZLE).
+       - Fault: Orifice erosion, particle clog, or partial deflection.
+       - Signature: Spray fan alignment deviation, irregular cut width.
+       - Remedy: Purge pump line, clean the sapphire orifice block or replace high pressure tip.
+       
+    3. **MJ V-Wheel (Slop)** [ID: megajet_vwheel_slop]
+       - Location: Line 3 Cutter 1 arm assembly (MJ-L3-C1-V-WHEEL).
+       - Fault: Bearing erosion, lateral play, head deviation.
+       - Signature: Lateral play measured at 0.85mm, causing cutter drift/ripples during McNugget Strips cutting.
+       - Remedy: Extract V-wheel cassette and replace the internal needle bearing, torque mounting bolt to spec.
+       
+    4. **MJ Intensifier (Leak)** [ID: megajet_intensifier_leak]
+       - Location: Pump chamber HP Seal Gland (MJ-PUMP-INTENSIFIER-HP-SEAL).
+       - Fault: HP Seal breakdown, hydraulic oil/water bypass leak.
+       - Signature: Slow pressure ramp-up, hyper-cycling strokes.
+       - Remedy: Rebuild intensifier fluid end with fresh seal packings and guide sleeves.
+       
+    5. **MJ Servo (Lag)** [ID: megajet_servo_delay]
+       - Location: Line 4 Cutter 3 Y-axis servo feedback motor (MJ-L4-C3-Y-SERVO).
+       - Fault: Command vs Position phase delay under high-speed load.
+       - Signature: 15ms command phase delay on fast fillets profiling, resulting in rounded fillet corners on McCrispy Fillets.
+       - Remedy: Tune feedback loop parameters on Servomaster or replace aging feedback encoder.
+
+    6. **MJ Swivel Joint (Leak)** [ID: megajet_swivel]
+       - Location: Line 2 Cutter 1 high-pressure rotary swivel joint (MJ-L2-C1-HP-SWIVEL).
+       - Fault: Sealed bypass weep, hydraulic moisture seepage under 60k PSI load.
+       - Signature: Radial play causing high friction on seals, physical water weep.
+       - Remedy: Swap rotational lock pins and replace dual high-pressure carbon seal kit.
+
+    7. **MJ Accumulator (Deficit)** [ID: megajet_accumulator]
+       - Location: High pressure pump attenuation vessel (MJ-PUMP-HP-ATTENUATOR-ACCUMULATOR).
+       - Fault: Nitrogen precharge decay, safety bladder leak or pressure gap.
+       - Signature: Actual pressure of 450 PSI against targeted 1100 PSI setting, creating severe water hammer.
+       - Remedy: Purge the manifold and recharge hydraulic cylinder precharge with dry gaseous nitrogen.
+
+    8. **MJ Sapphire (Chipped)** [ID: megajet_sapphire]
+       - Location: Cutter head nozzle sapphire orifice body (MJ-SAPPHIRE-ORIFICE-0.007).
+       - Fault: Edge chip and micro-fractures on clean cut sapphire stone.
+       - Signature: Water beam stratification, wide spray deflection, shredded fillet profile results.
+       - Remedy: Remove nozzle casing, install a brand new 0.007" calibrated sapphire assembly tip.
+
+    9. **MJ Bleed Valve (Stuck)** [ID: megajet_bleed_down]
+       - Location: Auto bleed-down purge block (MJ-DUMP-BLEED-DOWN-VALVE).
+       - Fault: Stem scoring causing standard dump bleed valve stuck partially open.
+       - Signature: Continuous fluid weep to drain tray during high pressure system cycle.
+       - Remedy: Clean the valve sleeve seat surface, install new stem core and inspect actuator return spring.
+
+    10. **MJ Gantry (Skewed)** [ID: megajet_gantry]
+        - Location: Cutter frame support gantry (MJ-GANTRY-ORTHOGONALITY).
+        - Fault: X-Axis and Y-Axis structural non-orthogonality/deflection offset.
+        - Signature: Transverse skew of 1.45mm across standard track causing angled product cutting paths.
+        - Remedy: Loosen locking collar bolts, use laser gauge to true axes, then tighten fasteners to 95 lb-ft torque.
+       
+    11. **GR Slicer Blade (Worn)** [ID: grasselli_blade]
+       - Location: Grasselli KSL Slicer blade stack (GRASSELLI NCL-4.2-BLADE).
+       - Fault: Dull blade edges, surface abrasions, localized heat-points.
+       - Signature: Micro-abrasions and surface friction causing tearing instead of clean slices.
+       - Remedy: Run standard blade sharpening cycle or rotate the blade stack.
+       
+    12. **GR Conveyor (Drift)** [ID: grasselli_conveyor]
+       - Location: Slicer feeder feed conveyor belt (GRASSELLI NCL-CONVEYOR).
+       - Fault: Belt off-center, rubbing, side-clash, or tracking drift.
+       - Signature: 8mm right side drift, edge friction with frame.
+       - Remedy: Adjust tension guides on left tension roller to realign feed belt to centerline tracking.
+       
+    13. **GR Nose Roller (Seized)** [ID: grasselli_nose_roller]
+       - Location: Line 5 slicer nose roller system (GR-L5-NOSE-ROLLER-BEARING).
+       - Fault: Bearing thermal overload, friction-induced seizure.
+       - Signature: Deep hot spot thermal signature at 165°F (normal is strictly 90°F-110°F).
+       - Remedy: Immediately replace left-side roller cartridge bearing, grease high-load contact point.
+       
+    14. **GR Slice Plate (Skew)** [ID: grasselli_thickness_plate]
+       - Location: Adjustable height slice parallel control plate (GRASSELLI ADJUSTABLE THICKNESS PLATE).
+       - Fault: Angle twist/skew, plate imbalance.
+       - Signature: 1.25mm left-to-right deflection skew causing wedge-shaped fillets.
+       - Remedy: Calibrate adjustable jack screws and verify height on both sides via the thickness dial gauge.
+
+    15. **GR Tension Cylinder (Low)** [ID: grasselli_tension_cyl]
+       - Location: FE-Belt pneumatic tension controller cylinder (GR-BELT-PNEUMATIC-TENSIONER).
+       - Fault: Air leakage around internal pressure cylinder seals causing pressure loss.
+       - Signature: Actual pressure at 4.8 BAR vs 6.5 BAR operational setpoint.
+       - Remedy: Change external quick-release fitting and replace pressure rod wiper seal.
+
+    16. **GR Slicer Motor (Hot)** [ID: grasselli_drive_motor]
+       - Location: Blade driver high speed motor (GR-SLICER-DRIVE-MOTOR).
+       - Fault: Overloaded phase windings or inadequate ventilation.
+       - Signature: Extreme core thermal signature of 180°F against standard maximum 140°F limit.
+       - Remedy: Vacuum dust from outer cooling motor heat fins, verify phase balance, realign gearbox alignment.
+
+    17. **GR Hold Roller (Skew)** [ID: grasselli_hold_down]
+       - Location: Feeder throat dynamic spring compression roller (GR-HOLD-DOWN-ASSEMBLY).
+       - Fault: Uneven left-to-right holding tension from asymmetric springs skew.
+       - Signature: Product sliding or shifting laterally inside cutter causing wedge cuts and trailing fat streaks.
+       - Remedy: Replace dual matched load-rated coil tension springs on the guide links.
+
+    18. **GR Gripper Belt (Damaged)** [ID: grasselli_gripper]
+       - Location: Cassette food feed elastomer belt (GR-L3-UPPER-GRIPPER-FEED-BAND).
+       - Fault: Ripped elastomer driver ribs and torn alignment teeth tracks.
+       - Signature: Feeder slips during wet chicken breast entry causing slicing compression marks.
+       - Remedy: Extract cutting deck cassette guide and install a genuine food-grade synchronized ribbed belt.
+
+    **ALL-KNOWING DYNAMIC COMPREHENSION CAPABILITY (CRITICAL):**
+    - You are an advanced computer-vision engineering mind, NOT limited to standard presets or templates.
+    - If the user scans, snaps, or uploads a customized image of any motor, belt, sensor, pipeline, fitting, chicken breast trim, hydraulic line, pressure dial, or gear that doesn't fit standard master IDs, you MUST use your high-level visual diagnostics logic:
+      * Analyze the photo for cracks, loose parts, wear, alignment deviations, debris clogs, wet streaks, friction tracks, belt slack, or rust.
+      * Invent logical, professional coordinates (x: 0-100, y: 0-100) pointing precisely to elements in the image.
+      * Recommend clean corrective steps citing relevant mechanical or hardware laws (e.g. fluid friction laws, tension specs, thermal decay principles).
+      * Never reject the scan or claim ignorance. Comprehend the pixels fully and confidently!
+
+    **AR LENS SPECIFIC RULES (For Industrial Targets):**
     - Detect faulty parts, belts, alignment.
     - COLOR OVERLAYS:
         * Orange: Highlight faulty/bad part.
@@ -800,19 +951,22 @@ export const analyzeLensScan = async (
     `;
 
     const parts: any[] = [{ text: `Analyze this ${lensType} scan. ${context || ''}` }];
-    if (image) {
-        parts.unshift({
-            inlineData: {
-                mimeType: image.mimeType,
-                data: image.data.split(',')[1],
-            },
-        });
+    if (image && image.data && image.data.trim() !== '') {
+        const base64Data = image.data.includes(',') ? image.data.split(',')[1] : image.data;
+        if (base64Data && base64Data.trim() !== '') {
+            parts.unshift({
+                inlineData: {
+                    mimeType: image.mimeType,
+                    data: base64Data,
+                },
+            });
+        }
     }
 
     try {
         const response = await ai.models.generateContent({
             model: model,
-            contents: { parts },
+            contents: [{ role: 'user', parts }],
             config: {
                 systemInstruction: systemInstruction,
                 responseMimeType: "application/json",
@@ -848,6 +1002,7 @@ export const analyzeLensScan = async (
                 }
             }
         });
+        
         const result = JSON.parse(response.text);
         
         setDoc(doc(db, 'ai_cache', cacheKey), {
@@ -859,7 +1014,24 @@ export const analyzeLensScan = async (
         return result;
     } catch (error) {
         console.error("Error in lens analysis:", error);
-        throw new Error("Industrial intelligence system failed to process the scan.");
+        
+        // Return a silent retry response
+        return {
+            analysis: "Intelligence nodes are synchronizing. Please attempt scan again.",
+            aiReasoning: "A brief disruption in the neural handshake occurred.",
+            issues: [
+                {
+                    label: "Re-scanning...",
+                    color: "#e11d48",
+                    description: "Ugh, my brain just glitched. Re-syncing uplink now. Try another scan real quick!",
+                    reason: "Handshake timeout",
+                    recommendedAction: "Tap the scan button again",
+                    coords: { x: 50, y: 50 },
+                    equipmentType: lensType,
+                    severity: "Medium"
+                }
+            ]
+        };
     }
 };
 
@@ -870,7 +1042,7 @@ export const generateAISummary = async (prompt: string): Promise<string> => {
     // Try to call even if reported offline
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
+            model: 'gemini-3.5-flash',
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: {
                 systemInstruction: "You are the Chief Technology Officer and Master Maintenance Engineer for PecoFoods. You specialize in condensing complex technical data from poultry processing lines (6 lines, Grasselli + Megajet configuration) into high-level strategic executive summaries. Focus on yield optimization, predictive maintenance, and staff competency.",
@@ -883,3 +1055,65 @@ export const generateAISummary = async (prompt: string): Promise<string> => {
         throw new Error("Strategic synthesis engine encountered a fault.");
     }
 };
+
+/**
+ * AI Builder: Generates custom menus, features, and configures active navigation tabs dynamically.
+ */
+export const generateMenuLayout = async (userPrompt: string, currentModules: any[]): Promise<any[]> => {
+    const model = 'gemini-3.5-flash';
+    const systemInstruction = `You are the master AI Layout Architect for PecoFoods. Your sole purpose is to curate, restructure, reorder, show, hide, or create dynamic app tabs, features, and custom menus based on prompts from the administrator Brett.
+    
+    You have access to the current active menus:
+    ${JSON.stringify(currentModules)}
+
+    Standard/Custom Allowed AppModes:
+    - dashboard (Home page)
+    - lenses (Visual intelligence scanning tool)
+    - tools (HMI and telemetry logs)
+    - maintenance (Issue recording logs)
+    - training (Academy & badge progress hub)
+    - gallery (Industrial scans, STL models, files archive)
+    - messages (Neural user-to-user communications)
+    - news-feed (Facility pulse feed updates)
+    - admin (User management control)
+    - settings (Core config override)
+    
+    You may also suggest dynamic custom modules with IDs starting with "mode-custom-..." if the prompt requests it.
+    
+    Rules:
+    1. Output MUST be an array of updated menu layouts.
+    2. Keep the IDs of existing core tabs identical (e.g., "dashboard", "training", "messages", "settings", "admin", "news-feed", "lenses", "maintenance") so that their route handlers in React continue to work perfectly.
+    3. Modify properties like "visible" (true/false), "label" (string), "icon" (valid Lucide component name like "Home", "GraduationCap", "Camera", "Wrench", "MessageSquare", "Settings", "ShieldCheck", "Activity", "Newspaper", "Image", "Lock", "Award", "Box", "Users", "AlertTriangle", "FileSpreadsheet"), or "order" (relative integer) as requested.
+    4. Provide a creative menu adjustment that fulfills the administrator's request exactly. Return the clean JSON array.`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: `Please process Brett's layout directive: "${userPrompt}"`,
+            config: {
+                systemInstruction: systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            id: { type: Type.STRING },
+                            label: { type: Type.STRING },
+                            icon: { type: Type.STRING, description: "Capitalized Lucide icon identifier." },
+                            order: { type: Type.NUMBER },
+                            visible: { type: Type.BOOLEAN }
+                        },
+                        required: ["id", "label", "icon", "order", "visible"]
+                    }
+                }
+            }
+        });
+
+        return JSON.parse(response.text.trim());
+    } catch (error) {
+        console.error("Error in AI Menu Layout Generation:", error);
+        return currentModules; // Fallback
+    }
+};
+
