@@ -600,6 +600,8 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
   const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
   const [questionText, setQuestionText] = useState('');
   const [lastAskedQuestion, setLastAskedQuestion] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
 
   const getSuggestedQueries = (m: LensView) => {
     switch (m) {
@@ -697,6 +699,7 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
     setIsScanning(false);
     setQuestionText('');
     setLastAskedQuestion(null);
+    setCameraError(null);
   }, [mode]);
 
   useEffect(() => {
@@ -708,6 +711,15 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
     let activeStream: MediaStream | null = null;
 
     const startCamera = async () => {
+      setCameraError(null);
+
+      // Secure context validation (HTTPS/localhost check)
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError("Security restriction: Device Web API 'mediaDevices' is unavailable. Browsers completely disable camera and microphone streams on insecure HTTP deployments. Please connect via HTTPS (e.g., https://) or test on http://localhost.");
+        setIsCameraActive(false);
+        return;
+      }
+
       try {
         // Attempt higher quality chosen/facing camera
         const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -718,7 +730,9 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
           } 
         });
         activeStream = stream;
-        if (videoRef.current) videoRef.current.srcObject = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
         setIsCameraActive(true);
       } catch (err) {
         console.warn(`Chosen camera (${facingMode}) failed, trying fallback...`, err);
@@ -728,7 +742,9 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
             video: { facingMode: facingMode } 
           });
           activeStream = stream;
-          if (videoRef.current) videoRef.current.srcObject = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
           setIsCameraActive(true);
         } catch (err2) {
           console.warn("Facing dynamic camera failed, trying any stream...", err2);
@@ -736,11 +752,18 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
             // Attempt any camera stream
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             activeStream = stream;
-            if (videoRef.current) videoRef.current.srcObject = stream;
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream;
+            }
             setIsCameraActive(true);
-          } catch (err3) {
+          } catch (err3: any) {
             console.error("Camera permissions completely denied or unavailable:", err3);
             setIsCameraActive(false);
+            if (err3 && (err3.name === 'NotAllowedError' || err3.name === 'PermissionDeniedError')) {
+              setCameraError("Camera access denied. Site permissions are blocked. Tap the lock/info icon next to the address bar in your browser to grant device camera and microphone access.");
+            } else {
+              setCameraError(`Camera connection failed: ${err3?.message || "Unknown hardware error."} Make sure no other application is using your camera.`);
+            }
           }
         }
       }
@@ -759,7 +782,7 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
       }
       setIsCameraActive(false);
     };
-  }, [mode, facingMode]);
+  }, [mode, facingMode, retryTrigger]);
 
   useEffect(() => {
     if (autoScan && !isScanning) {
@@ -1673,10 +1696,76 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
                     <img src={capturedImage} className="w-full h-full object-contain max-h-[80vh] rounded-[2rem]" alt="Captured Preset" />
                   )}
                 </div>
-            ) : isCameraActive ? (
-                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
             ) : (
-                <canvas ref={canvasSimRef} className="w-full h-full object-cover bg-slate-950" />
+                <div className="w-full h-full relative flex items-center justify-center bg-slate-950">
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    playsInline 
+                    muted 
+                    className={`w-full h-full object-cover ${isCameraActive ? 'block' : 'hidden'}`} 
+                  />
+                  
+                  {!isCameraActive && !cameraError && (
+                    <canvas ref={canvasSimRef} className="w-full h-full object-cover bg-slate-950" />
+                  )}
+
+                  {cameraError && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 p-6 text-center z-30">
+                      <div className="max-w-md bg-slate-900/90 border border-brand-red/30 rounded-[2.5rem] p-8 flex flex-col items-center space-y-6 shadow-2xl backdrop-blur-xl">
+                        <div className="p-4 bg-brand-red/10 text-brand-red rounded-2xl border border-brand-red/20 animate-pulse">
+                          <AlertTriangle className="h-10 w-10" />
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-black text-white uppercase tracking-wider">Camera Sensor Offline</h4>
+                          <p className="text-slate-400 text-xs mt-3 leading-relaxed">
+                            {cameraError}
+                          </p>
+                        </div>
+                        
+                        <div className="w-full bg-white/5 rounded-2xl p-4 text-left border border-white/5 space-y-2.5">
+                          <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block font-mono">PWA / Standalone Troubleshooting:</span>
+                          <div className="flex items-start space-x-2.5 text-xs text-slate-300">
+                            <span className="text-brand-red font-black">✓</span>
+                            <span><strong>Secure Connections Rule:</strong> Chrome and iOS Safari strictly disable device media streams on insecure <code className="text-slate-400 font-mono">http://</code> pages. Always host on HTTPS (e.g. GitHub Pages) or deploy to a secure PWA endpoint.</span>
+                          </div>
+                          <div className="flex items-start space-x-2.5 text-xs text-slate-300">
+                            <span className="text-brand-red font-black">✓</span>
+                            <span><strong>Browser Permissions:</strong> Look at your address bar next to the domain, click the Lock icon, and manually unlock <strong>Camera</strong> access permission.</span>
+                          </div>
+                          <div className="flex items-start space-x-2.5 text-xs text-slate-300">
+                            <span className="text-brand-red font-black">✓</span>
+                            <span><strong>Device Hardware:</strong> Ensure your phone camera isn't locked by another active app in the background.</span>
+                          </div>
+                        </div>
+
+                        <div className="flex space-x-3 w-full">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCameraError(null);
+                              setRetryTrigger(prev => prev + 1);
+                              speak("Retrying production camera connection.");
+                            }}
+                            className="flex-1 py-3 bg-brand-red hover:bg-brand-red/90 text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all active:scale-95 shadow-lg shadow-brand-red/20"
+                          >
+                            Retry Cam
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              speak("Connecting stream to digital twin offline mode.");
+                              setCameraError(null);
+                            }}
+                            className="flex-1 py-3 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all"
+                          >
+                            Use Offline Simulator
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
             )}
 
             {/* Real-time Streaming Status Badge */}
