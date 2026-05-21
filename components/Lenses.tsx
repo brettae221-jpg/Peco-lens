@@ -25,7 +25,10 @@ import {
   Scan,
   RefreshCw,
   Mic,
-  MicOff
+  MicOff,
+  Sparkles,
+  Send,
+  Download
 } from 'lucide-react';
 import { analyzeLensScan } from '../services/geminiService';
 
@@ -579,7 +582,7 @@ interface LiveLensViewProps {
 
 const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
   const [isScanning, setIsScanning] = useState(false);
-  const [autoScan, setAutoScan] = useState(true);
+  const [autoScan, setAutoScan] = useState(false);
   const [analysis, setAnalysis] = useState<any>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [selectedDemoKey, setSelectedDemoKey] = useState<string | null>(null);
@@ -592,6 +595,83 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
   const [selectedGrasselli, setSelectedGrasselli] = useState('Grasselli KSL Slicer');
   const [isCameraActive, setIsCameraActive] = useState(false);
   const canvasSimRef = useRef<HTMLCanvasElement>(null);
+
+  // Advanced Interactive AI States
+  const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user');
+  const [questionText, setQuestionText] = useState('');
+  const [lastAskedQuestion, setLastAskedQuestion] = useState<string | null>(null);
+
+  const getSuggestedQueries = (m: LensView) => {
+    switch (m) {
+      case 'megajet':
+        return [
+          "is this v wheel bad",
+          "What is the status of the carriage belt?",
+          "Is the sapphire orifice chipped?",
+          "Is the high-pressure swivel joint leaking?"
+        ];
+      case 'poultry':
+        return [
+          "Are there fat trim defects in this breast fillet?",
+          "Is the sliced fillet yield optimal?",
+          "Does this muscle fillet show surface tearing?"
+        ];
+      case 'grasselli':
+        return [
+          "What is this servo scope saying?",
+          "Is the feed-belt tracking off-center?",
+          "Are the gripper band cleats worn?"
+        ];
+      case 'thermal':
+        return [
+          "Which nose roller bearing is overheating?",
+          "Is the drive motor temperature too hot?"
+        ];
+      case 'scope':
+        return [
+          "What is this servo scope saying?",
+          "What is causing the positioning oscillations?"
+        ];
+      default:
+        return [
+          "Is this part out of spec or bad?",
+          "Check alignment and physical tolerances."
+        ];
+    }
+  };
+
+  const handleSavePicture = () => {
+    let finalDataUrl = capturedImage;
+    
+    if (!finalDataUrl && videoRef.current && isCameraActive) {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth || 1280;
+        canvas.height = videoRef.current.videoHeight || 720;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(videoRef.current, 0, 0);
+        finalDataUrl = canvas.toDataURL('image/png');
+      } catch (err) {
+        console.error("Failed to capture video frames for saving:", err);
+      }
+    } else if (!finalDataUrl && canvasSimRef.current) {
+      try {
+        finalDataUrl = canvasSimRef.current.toDataURL('image/png');
+      } catch (err) {}
+    }
+
+    if (finalDataUrl) {
+      const link = document.createElement('a');
+      link.href = finalDataUrl;
+      link.download = `PecoFoods_${mode}_lens_capture_${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      speak("Snapshot saved to your device rolls.");
+    } else {
+      speak("Unable to capture active frame buffer.");
+    }
+  };
 
   const getLensInfo = (m: LensView) => {
     switch(m) {
@@ -615,6 +695,8 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
     setSelectedDemoKey(null);
     setAnalysis(null);
     setIsScanning(false);
+    setQuestionText('');
+    setLastAskedQuestion(null);
   }, [mode]);
 
   useEffect(() => {
@@ -627,10 +709,10 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
 
     const startCamera = async () => {
       try {
-        // Attempt higher quality back camera
+        // Attempt higher quality chosen/facing camera
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
-            facingMode: 'environment',
+            facingMode: facingMode,
             width: { ideal: 1280 },
             height: { ideal: 720 }
           } 
@@ -639,17 +721,17 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
         if (videoRef.current) videoRef.current.srcObject = stream;
         setIsCameraActive(true);
       } catch (err) {
-        console.warn("High-res environment camera failed, trying fallback...", err);
+        console.warn(`Chosen camera (${facingMode}) failed, trying fallback...`, err);
         try {
-          // Attempt general back camera
+          // Attempt general dynamic camera
           const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { facingMode: 'environment' } 
+            video: { facingMode: facingMode } 
           });
           activeStream = stream;
           if (videoRef.current) videoRef.current.srcObject = stream;
           setIsCameraActive(true);
         } catch (err2) {
-          console.warn("Facing environment camera failed, trying any stream...", err2);
+          console.warn("Facing dynamic camera failed, trying any stream...", err2);
           try {
             // Attempt any camera stream
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -677,7 +759,7 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
       }
       setIsCameraActive(false);
     };
-  }, [mode]);
+  }, [mode, facingMode]);
 
   useEffect(() => {
     if (autoScan && !isScanning) {
@@ -714,15 +796,19 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
     setIsScanning(true);
 
     let imageData = capturedImage;
-    let scanContext = voiceTranscript || "";
+    const finalQuestion = voiceTranscript || questionText;
+    setLastAskedQuestion(finalQuestion || "General Surface Scan");
+    setQuestionText('');
+
+    let scanContext = finalQuestion || "Is there anything faulty, broken, misaligned, or out of spec in this view?";
 
     // Embed current model selection as hardware telemetry state
     const targetTelemetry = `[SCAN COMPREHENSION TARGET SPECIFICATION: Active MegaJet Unit under scan: ${selectedMegajet}. Active Grasselli Unit under scan: ${selectedGrasselli}]`;
-    scanContext = scanContext ? `${scanContext} // ${targetTelemetry}` : targetTelemetry;
+    scanContext = `${scanContext} // ${targetTelemetry}`;
 
     if (selectedDemoKey && DEMO_TARGETS[selectedDemoKey]) {
       const demo = DEMO_TARGETS[selectedDemoKey];
-      scanContext = `${scanContext ? scanContext + " // " : ""}Simulated sensor target loaded - Component Name: ${demo.name}, Description: ${demo.description}, Details: ${demo.context}`;
+      scanContext = `${scanContext} // Simulated sensor target loaded - Component Name: ${demo.name}, Description: ${demo.description}, Details: ${demo.context}`;
     }
 
     if (!capturedImage) {
@@ -766,11 +852,13 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
       
       setAnalysis(result);
       
-      // Brett speaks!
-      if (result.issues.length > 0) {
-        speak(`Hey! I found ${result.issues.length} potential issues. Specifically, ${result.issues[0].label}. You might want to check it out.`);
+      // Brett speaks the full conversational evaluation!
+      if (result.analysis) {
+        speak(result.analysis);
+      } else if (result.issues.length > 0) {
+        speak(`Attention operator. Found potential hardware concern. Specifically: ${result.issues[0].label}.`);
       } else {
-        speak("All systems appear within tolerance. Looking good, buddy!");
+        speak("Mechanical scan completed. Telemetry and structural thresholds appear normal.");
       }
 
     } catch (error) {
@@ -1748,39 +1836,198 @@ const LiveLensView: React.FC<LiveLensViewProps> = ({ mode, onClose }) => {
         )}
       </AnimatePresence>
 
-      {/* Control Buttons */}
-      <div className="absolute bottom-10 inset-x-8 flex space-x-3 z-40">
-        <button 
-           onClick={() => {
-              const nextState = !autoScan;
-              setAutoScan(nextState);
-              if (nextState) {
-                // If turning auto back on, trigger a scan immediately
-                setTimeout(() => handleScan(), 100);
-              }
-           }}
-           className={`w-24 h-20 backdrop-blur-xl border rounded-[2rem] flex flex-col items-center justify-center active:scale-95 transition-all ${autoScan ? 'bg-brand-red/90 border-brand-red text-white shadow-lg shadow-brand-red/20' : 'bg-white/5 border-white/10 text-slate-500'}`}
-           title={autoScan ? 'Autoscan active (6s interval)' : 'Autoscan paused'}
-        >
-            <RefreshCw className={`h-6 w-6 mb-1 ${autoScan && isScanning ? 'animate-spin' : ''}`} />
-            <span className="text-[8px] font-black uppercase tracking-wider">{autoScan ? 'LIVE' : 'PAUSED'}</span>
-        </button>
+      {/* Dynamic Conversational PecoLens AI HUD */}
+      <AnimatePresence>
+        {analysis && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            className="absolute left-8 right-8 bottom-32 max-h-[42vh] overflow-y-auto no-scrollbar bg-slate-950/95 backdrop-blur-3xl border border-indigo-500/20 rounded-[2.5rem] p-6 shadow-2xl z-40 max-w-2xl mx-auto flex flex-col space-y-4"
+          >
+            {/* Header: User Question Asked */}
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div className="flex items-center space-x-3">
+                <Sparkles className="h-5 w-5 text-indigo-400 animate-pulse" />
+                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">PecoLens Assistant Response</span>
+              </div>
+              <button 
+                onClick={() => setAnalysis(null)} 
+                className="text-slate-500 hover:text-white transition-colors"
+                title="Clear Assistant Output"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
 
-        <button 
-           onClick={() => handleScan()}
-           disabled={isScanning}
-           className={`flex-1 h-20 bg-brand-red rounded-[2rem] text-white font-black uppercase tracking-[0.4em] text-xs md:text-sm shadow-2xl flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 ${autoScan ? 'ring-2 ring-brand-red/50 ring-offset-2 ring-offset-slate-950' : ''}`}
-        >
-            {isScanning ? <Loader2 className="h-6 w-6 animate-spin" /> : <Scan className="h-6 w-6" />}
-            {isScanning ? 'Streaming...' : 'Scan Now'}
-        </button>
+            {/* Conversation text bubble */}
+            <div className="space-y-4">
+              {lastAskedQuestion && (
+                <div className="flex flex-col space-y-1">
+                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-wider">Operator Asked:</span>
+                  <p className="text-xs text-white font-medium italic bg-white/5 px-4 py-2.5 rounded-2xl border border-white/5">
+                    "{lastAskedQuestion}"
+                  </p>
+                </div>
+              )}
+
+              <div className="flex flex-col space-y-1">
+                <span className="text-[8px] font-black text-indigo-400 uppercase tracking-wider">Brett's Industrial Verdict:</span>
+                <p className="text-zinc-200 text-sm leading-relaxed font-sans font-normal">
+                  {analysis.analysis}
+                </p>
+              </div>
+
+              {analysis.aiReasoning && (
+                <div className="flex flex-col space-y-1 bg-slate-900/60 p-4 rounded-2xl border border-white/5">
+                  <span className="text-[8px] font-black text-emerald-400 uppercase tracking-wider">Engineering Logic & Laws:</span>
+                  <p className="text-slate-400 text-xs leading-relaxed">
+                    {analysis.aiReasoning}
+                  </p>
+                </div>
+              )}
+
+              {/* Dynamic 3D Guided Scanning Instructions based on detected faults */}
+              {analysis.issues && analysis.issues.length > 0 && (
+                <div className="bg-brand-red/10 border border-brand-red/20 p-4 rounded-2xl flex flex-col space-y-1">
+                  <div className="flex items-center space-x-2 text-brand-red">
+                    <AlertTriangle className="h-4 w-4" />
+                    <span className="text-[9px] font-black uppercase tracking-wider">Holographic 3D Surface Reconstruction Guidance</span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                    {mode === 'megajet' ? (
+                      "Please slow-pan the lens 45° around the dual cutter gantry bracket. Scan the lateral holding pins from left-to-right to measure sub-millimeter axial bearing play."
+                    ) : mode === 'grasselli' ? (
+                      "Angle the viewport downward into the feed throat guide. Gently shift perspective to the left roller casing to complete diagnostic thermal depth mapping."
+                    ) : (
+                      "To fully synthesize the 3D model: Align the central indicator dots, tilt the camera 20° upward, and complete a slow circumferential scan."
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* HUD Call to Actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-white/5">
+              <span className="text-[8px] font-mono text-zinc-500 uppercase">MODEL COMPREHENSION V3.5</span>
+              
+              <div className="flex space-x-2">
+                <button
+                  type="button"
+                  onClick={handleSavePicture}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg shadow-indigo-600/20 active:scale-95 transition-all flex items-center space-x-1.5"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                  <span>Save Diagnostic Photo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAnalysis(null)}
+                  className="px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white font-black uppercase text-[10px] tracking-widest rounded-xl transition-all"
+                >
+                  Dismiss HUD
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Control & Dialogue Prompt Center */}
+      <div className="absolute bottom-6 inset-x-8 flex flex-col space-y-3.5 z-40 max-w-2xl mx-auto">
         
-        <button 
-           onClick={toggleListening}
-           className={`w-20 h-20 backdrop-blur-xl border border-white/10 rounded-[2rem] flex items-center justify-center active:scale-95 transition-all ${isListening ? 'bg-emerald-500 text-white animate-pulse' : 'bg-white/10 text-white'}`}
-        >
-            {isListening ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
-        </button>
+        {/* Suggested Queries Chips */}
+        {!analysis && !isScanning && (
+          <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar py-1">
+            {getSuggestedQueries(mode).map((q, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setQuestionText(q);
+                  speak(`Triggering diagnostic query: ${q}`);
+                  // Directly execute
+                  setTimeout(() => handleScan(q), 200);
+                }}
+                className="px-3 py-1.5 bg-slate-950/80 border border-white/10 hover:border-indigo-500/40 hover:bg-slate-900 rounded-full text-[9px] font-black uppercase text-zinc-400 hover:text-white transition-all whitespace-nowrap active:scale-95 flex items-center space-x-1"
+              >
+                <Sparkles className="h-2.5 w-2.5 text-indigo-400" />
+                <span>{q}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Master Query Bar & Button Core */}
+        <div className="flex space-x-3 items-center">
+          
+          {/* Flip Camera switch */}
+          {mode !== 'poultry' && (
+            <button 
+               type="button"
+               onClick={() => {
+                 const nextMode = facingMode === 'user' ? 'environment' : 'user';
+                 setFacingMode(nextMode);
+                 speak(`Rotating viewer to ${nextMode === 'user' ? 'front camera' : 'back camera'}.`);
+               }}
+               className={`w-14 h-14 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center active:scale-95 transition-all ${facingMode === 'user' ? 'bg-indigo-600/40 border-indigo-500/50 text-white' : 'bg-white/5 text-slate-400 hover:text-white'}`}
+               title="Flip front / rear camera"
+            >
+                <RefreshCw className="h-5 w-5" />
+            </button>
+          )}
+
+          {/* Interactive Chat Input bar */}
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (questionText.trim()) {
+                handleScan();
+              }
+            }}
+            className="flex-1 h-14 bg-slate-950/90 border border-white/10 rounded-2xl flex items-center px-4 space-x-2 shadow-2xl focus-within:border-indigo-500/50 transition-all"
+          >
+            <input 
+              type="text"
+              value={questionText}
+              onChange={(e) => setQuestionText(e.target.value)}
+              placeholder={`Ask Brett (e.g. 'Is this v wheel bad?')`}
+              className="flex-1 bg-transparent text-white placeholder-slate-500 font-bold text-xs focus:outline-none border-0 py-0"
+              disabled={isScanning}
+            />
+            {questionText.trim() && (
+              <button 
+                type="submit"
+                disabled={isScanning}
+                className="p-2 bg-indigo-600 rounded-xl text-white hover:bg-indigo-700 transition-all flex items-center justify-center animate-fadeIn"
+              >
+                <Send className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </form>
+
+          {/* Hand Scan button for non-text general scan */}
+          <button 
+             type="button"
+             onClick={() => handleScan()}
+             disabled={isScanning}
+             className={`h-14 px-5 bg-brand-red rounded-2xl text-white font-black uppercase tracking-widest text-[10px] shadow-xl flex items-center justify-center gap-1.5 active:scale-95 transition-all disabled:opacity-50`}
+             title="Run raw scanning diagnostic"
+          >
+              {isScanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scan className="h-4 w-4" />}
+              <span>{isScanning ? 'STREAMING...' : 'SCAN'}</span>
+          </button>
+
+          {/* Mic Toggle button */}
+          <button 
+             type="button"
+             onClick={toggleListening}
+             className={`w-14 h-14 backdrop-blur-xl border border-white/10 rounded-2xl flex items-center justify-center active:scale-95 transition-all ${isListening ? 'bg-emerald-500 border-emerald-500 text-white animate-pulse' : 'bg-white/10 text-white hover:bg-white/15'}`}
+             title={isListening ? 'Listening...' : 'Push to speak'}
+          >
+              {isListening ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       <style>{`
